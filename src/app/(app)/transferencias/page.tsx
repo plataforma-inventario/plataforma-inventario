@@ -30,6 +30,44 @@ export default async function TransferenciasPage({
     Object.entries(valores).filter(([, v]) => v) as [string, string][]
   ).toString();
 
+  // Agrupa os itens (já corretos, sem valor de NF repetido) por documento,
+  // pra mostrar quanto cada nota valeu no total e quais itens ela teve.
+  const notasPorChave = new Map<
+    string,
+    {
+      numeroDocumento: string;
+      dataEmissao: Date;
+      direcao: string;
+      loja: (typeof itens)[number]["arquivo"]["ciclo"]["loja"];
+      contraparteCodigo: string;
+      contraparteNome: string;
+      valorTotalNota: number;
+      itens: typeof itens;
+    }
+  >();
+  for (const i of itens) {
+    const chave = `${i.arquivo.ciclo.loja.id}-${i.numeroDocumento}`;
+    let nota = notasPorChave.get(chave);
+    if (!nota) {
+      nota = {
+        numeroDocumento: i.numeroDocumento,
+        dataEmissao: i.dataEmissao,
+        direcao: i.direcao,
+        loja: i.arquivo.ciclo.loja,
+        contraparteCodigo: i.contraparteCodigo,
+        contraparteNome: i.contraparteNome,
+        valorTotalNota: 0,
+        itens: [],
+      };
+      notasPorChave.set(chave, nota);
+    }
+    nota.valorTotalNota += Number(i.valorTotalItem);
+    nota.itens.push(i);
+  }
+  const notas = Array.from(notasPorChave.values()).sort(
+    (a, b) => b.dataEmissao.getTime() - a.dataEmissao.getTime()
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between">
@@ -60,50 +98,57 @@ export default async function TransferenciasPage({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-500">
-            <tr>
-              <th className="px-4 py-2 font-medium">Data</th>
-              <th className="px-4 py-2 font-medium">Loja</th>
-              <th className="px-4 py-2 font-medium">Direção</th>
-              <th className="px-4 py-2 font-medium">Documento</th>
-              <th className="px-4 py-2 font-medium">Contraparte</th>
-              <th className="px-4 py-2 font-medium">Produto</th>
-              <th className="px-4 py-2 font-medium">Qtde</th>
-              <th className="px-4 py-2 font-medium">Valor</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100">
-            {itens.map((i) => (
-              <tr key={i.id}>
-                <td className="px-4 py-2 whitespace-nowrap text-neutral-500">
-                  {i.dataEmissao.toLocaleDateString("pt-BR")}
-                </td>
-                <td className="px-4 py-2 whitespace-nowrap text-neutral-700">
-                  {i.arquivo.ciclo.loja.pdv} — {i.arquivo.ciclo.loja.nome}
-                </td>
-                <td className={`px-4 py-2 ${i.direcao === "ENTRADA" ? "text-emerald-700" : "text-red-600"}`}>
-                  {i.direcao === "ENTRADA" ? "Entrada" : "Saída"}
-                </td>
-                <td className="px-4 py-2 text-neutral-500">{i.numeroDocumento}</td>
-                <td className="px-4 py-2 text-neutral-700">
-                  {i.contraparteCodigo} — {i.contraparteNome}
-                </td>
-                <td className="px-4 py-2 text-neutral-900">{i.descricaoProduto}</td>
-                <td className="px-4 py-2 text-neutral-700">{i.quantidade.toString()}</td>
-                <td className="px-4 py-2 text-neutral-700">{formatoBRL.format(Number(i.valorTotalItem))}</td>
-              </tr>
-            ))}
-            {itens.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-neutral-400">
-                  Nenhuma transferência lançada ainda.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="flex flex-col gap-3">
+        {notas.map((nota) => (
+          <div
+            key={`${nota.loja.id}-${nota.numeroDocumento}`}
+            className="overflow-hidden rounded-lg border border-neutral-200 bg-white"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-2">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <span className="font-medium text-neutral-900">NF {nota.numeroDocumento}</span>
+                <span className="text-neutral-500">{nota.dataEmissao.toLocaleDateString("pt-BR")}</span>
+                <span className="text-neutral-500">
+                  {nota.loja.pdv} — {nota.loja.nome}
+                </span>
+                <span className={nota.direcao === "ENTRADA" ? "text-emerald-700" : "text-red-600"}>
+                  {nota.direcao === "ENTRADA" ? "Entrada" : "Saída"}
+                </span>
+                <span className="text-neutral-500">
+                  {nota.contraparteCodigo} — {nota.contraparteNome}
+                </span>
+              </div>
+              <span className="text-sm font-medium text-neutral-900">
+                {formatoBRL.format(nota.valorTotalNota)} · {nota.itens.length} item(ns)
+              </span>
+            </div>
+            <table className="w-full text-left text-sm">
+              <thead className="text-neutral-400">
+                <tr>
+                  <th className="px-4 py-1.5 font-normal">Produto</th>
+                  <th className="px-4 py-1.5 font-normal">Qtde</th>
+                  <th className="px-4 py-1.5 font-normal">Valor do item</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {nota.itens.map((i) => (
+                  <tr key={i.id}>
+                    <td className="px-4 py-1.5 text-neutral-700">{i.descricaoProduto}</td>
+                    <td className="px-4 py-1.5 text-neutral-700">{i.quantidade.toString()}</td>
+                    <td className="px-4 py-1.5 text-neutral-700">
+                      {formatoBRL.format(Number(i.valorTotalItem))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+        {notas.length === 0 && (
+          <div className="rounded-lg border border-neutral-200 bg-white px-4 py-6 text-center text-neutral-400">
+            Nenhuma transferência lançada ainda.
+          </div>
+        )}
       </div>
     </div>
   );
