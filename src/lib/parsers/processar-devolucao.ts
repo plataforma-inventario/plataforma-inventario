@@ -15,7 +15,7 @@ export type ResultadoImportacaoDevolucao = {
  * uma NF que já existe de uma importação anterior.
  */
 export async function importarArquivoDevolucao(
-  buffer: Buffer,
+  buffer: Buffer<ArrayBuffer>,
   nomeArquivo: string,
   tipoMime: string,
   uploadedByUserId: string

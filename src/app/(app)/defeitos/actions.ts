@@ -107,7 +107,7 @@ export async function criarInsucesso(
     return { erro: "Preencha loja, data e observação." };
   }
 
-  let fotoBuffer: Buffer | null = null;
+  let fotoBuffer: Buffer<ArrayBuffer> | null = null;
   let fotoTipoMime: string | null = null;
   if (foto instanceof File && foto.size > 0) {
     fotoBuffer = Buffer.from(await foto.arrayBuffer());

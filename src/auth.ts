@@ -16,7 +16,10 @@ declare module "next-auth" {
   }
 }
 
-declare module "next-auth/jwt" {
+// Augmentar via "@auth/core/jwt" (não "next-auth/jwt", que é só um
+// re-export e faz o TypeScript não conseguir mesclar a augmentation
+// corretamente, deixando token.id/nome/perfil como `unknown`).
+declare module "@auth/core/jwt" {
   interface JWT {
     id: string;
     nome: string;
