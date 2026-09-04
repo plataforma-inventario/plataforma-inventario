@@ -35,6 +35,7 @@ export default async function ItensPage() {
                 <th className="px-4 py-2 font-medium">Demonstrador</th>
                 <th className="px-4 py-2 font-medium">Brinde</th>
                 <th className="px-4 py-2 font-medium">Perda/roubo</th>
+                <th className="px-4 py-2 font-medium">Defeito</th>
                 <th className="px-4 py-2 font-medium">Cruzamento suspeito</th>
                 <th className="px-4 py-2 font-medium">Peso</th>
               </tr>
@@ -50,6 +51,7 @@ export default async function ItensPage() {
                   <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasDemonstrador}</td>
                   <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasBrinde}</td>
                   <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasPerdaRoubo}</td>
+                  <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasDefeito}</td>
                   <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasCruzamentoSuspeito}</td>
                   <td className="px-4 py-2 font-medium text-neutral-900">{l.peso}</td>
                 </tr>

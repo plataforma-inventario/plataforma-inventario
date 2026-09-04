@@ -8,6 +8,7 @@ export type LinhaRankingItem = {
   ocorrenciasDemonstrador: number;
   ocorrenciasBrinde: number;
   ocorrenciasPerdaRoubo: number;
+  ocorrenciasDefeito: number;
   ocorrenciasCruzamentoSuspeito: number;
   peso: number;
 };
@@ -18,11 +19,12 @@ export type LinhaRankingItem = {
  * usado como demonstrador e nunca baixado certo) de divergência real de
  * estoque. "Peso" = soma simples das ocorrências em cada categoria.
  *
- * Não inclui Defeitos: o cadastro de Defeito é por nota fiscal (sem detalhe
- * de item por SKU), então não dá pra contar ocorrência por produto ainda.
+ * Defeito entrou em 2026-09-04, a pedido do usuário, depois que a
+ * redesenho de Defeitos passou a guardar item por item (ItemDefeito) - antes
+ * só existia o total por nota fiscal, sem detalhe de SKU.
  */
 export async function getRankingItens(): Promise<LinhaRankingItem[]> {
-  const [divergenciasInventario, requisicoes, cruzamentos] = await Promise.all([
+  const [divergenciasInventario, requisicoes, defeitos, cruzamentos] = await Promise.all([
     prisma.itemInventario.findMany({
       where: { arquivo: { ciclo: { status: "FECHADO" } }, NOT: { ajuste: 0 } },
       select: { codigoProduto: true, descricaoProduto: true },
@@ -30,6 +32,9 @@ export async function getRankingItens(): Promise<LinhaRankingItem[]> {
     prisma.itemRequisicao.findMany({
       where: { arquivo: { ciclo: { status: "FECHADO" } } },
       select: { codigoProduto: true, descricaoProduto: true, motivoCodigo: true },
+    }),
+    prisma.itemDefeito.findMany({
+      select: { codigoProduto: true, descricaoProduto: true },
     }),
     getDivergenciasCruzadas(),
   ]);
@@ -46,6 +51,7 @@ export async function getRankingItens(): Promise<LinhaRankingItem[]> {
         ocorrenciasDemonstrador: 0,
         ocorrenciasBrinde: 0,
         ocorrenciasPerdaRoubo: 0,
+        ocorrenciasDefeito: 0,
         ocorrenciasCruzamentoSuspeito: 0,
         peso: 0,
       };
@@ -66,6 +72,10 @@ export async function getRankingItens(): Promise<LinhaRankingItem[]> {
     if (motivo.includes("PERDA") || motivo.includes("ROUBO")) linha.ocorrenciasPerdaRoubo++;
   }
 
+  for (const d of defeitos) {
+    getOuCriar(d.codigoProduto, d.descricaoProduto).ocorrenciasDefeito++;
+  }
+
   for (const c of cruzamentos) {
     getOuCriar(c.codigoProduto, c.descricaoProduto).ocorrenciasCruzamentoSuspeito++;
   }
@@ -76,6 +86,7 @@ export async function getRankingItens(): Promise<LinhaRankingItem[]> {
       linha.ocorrenciasDemonstrador +
       linha.ocorrenciasBrinde +
       linha.ocorrenciasPerdaRoubo +
+      linha.ocorrenciasDefeito +
       linha.ocorrenciasCruzamentoSuspeito * 2; // cruzamento pesa mais - já é uma suspeita concreta
   }
 
