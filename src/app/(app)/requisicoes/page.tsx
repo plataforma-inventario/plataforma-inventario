@@ -1,0 +1,79 @@
+import { auth } from "@/auth";
+import { getRequisicoes } from "@/lib/relatorios";
+import { getLojasVisiveis } from "@/lib/access";
+import { FiltroLoja } from "../filtro-loja";
+
+const formatoBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+export default async function RequisicoesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ loja?: string }>;
+}) {
+  const session = await auth();
+  if (!session) return null;
+  const { loja } = await searchParams;
+
+  const [{ itens, custoTotal }, lojas] = await Promise.all([
+    getRequisicoes(session.user, loja),
+    getLojasVisiveis(session.user),
+  ]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-lg font-medium text-neutral-900">Requisições</h1>
+          <p className="text-sm text-neutral-500">
+            Demonstradores, brindes, vencidos, premiações, perda/roubo e material auxiliar.
+          </p>
+        </div>
+        <FiltroLoja lojas={lojas} valorAtual={loja} />
+      </div>
+
+      <div className="rounded-lg border border-neutral-200 bg-white p-4 sm:w-64">
+        <p className="text-sm text-neutral-500">Custo total</p>
+        <p className="text-lg font-medium text-neutral-900">{formatoBRL.format(custoTotal)}</p>
+      </div>
+
+      {/* Item 6: nunca exibir PDV aqui — só a razão social. */}
+      <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-neutral-50 text-neutral-500">
+            <tr>
+              <th className="px-4 py-2 font-medium">Data</th>
+              <th className="px-4 py-2 font-medium">Razão social</th>
+              <th className="px-4 py-2 font-medium">Motivo</th>
+              <th className="px-4 py-2 font-medium">Produto</th>
+              <th className="px-4 py-2 font-medium">Qtde</th>
+              <th className="px-4 py-2 font-medium">Custo</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-neutral-100">
+            {itens.map((i) => (
+              <tr key={i.id}>
+                <td className="px-4 py-2 whitespace-nowrap text-neutral-500">
+                  {i.dataRequisicao.toLocaleDateString("pt-BR")}
+                </td>
+                <td className="px-4 py-2 text-neutral-700">
+                  {i.arquivo.ciclo.loja.grupo.razaoSocial ?? i.arquivo.ciclo.loja.grupo.nome}
+                </td>
+                <td className="px-4 py-2 text-neutral-700">{i.motivoCodigo}</td>
+                <td className="px-4 py-2 text-neutral-900">{i.descricaoProduto}</td>
+                <td className="px-4 py-2 text-neutral-700">{i.quantidadeAtendida.toString()}</td>
+                <td className="px-4 py-2 text-neutral-700">{formatoBRL.format(Number(i.custoTotal))}</td>
+              </tr>
+            ))}
+            {itens.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-6 text-center text-neutral-400">
+                  Nenhuma requisição lançada ainda.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

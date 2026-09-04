@@ -14,3 +14,19 @@ export async function requireAuditor() {
   }
   return session;
 }
+
+/**
+ * Item 10.2: a meta de divergência é definida pela Diretoria, não só pelo
+ * Auditor — única exceção no sistema em que Diretoria (normalmente somente
+ * leitura) pode escrever.
+ */
+export async function requireAuditorOuDiretoria() {
+  const session = await auth();
+  if (
+    !session ||
+    (session.user.perfil !== PerfilAcesso.AUDITOR && session.user.perfil !== PerfilAcesso.DIRETORIA)
+  ) {
+    throw new Error("Apenas Auditor ou Diretoria podem realizar esta ação.");
+  }
+  return session;
+}

@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireAuditor } from "@/lib/authz";
+import { requireAuditor, requireAuditorOuDiretoria } from "@/lib/authz";
+import { registrarAlteracoes } from "@/lib/log-alteracao";
 import {
   CicloContagem,
   TipoLoja,
@@ -42,25 +43,87 @@ export async function criarLoja(_prevState: { erro?: string } | undefined, formD
   }
 }
 
-export async function atualizarLoja(lojaId: string, formData: FormData) {
-  await requireAuditor();
+export async function atualizarLoja(
+  lojaId: string,
+  _prevState: { erro?: string } | undefined,
+  formData: FormData
+): Promise<{ erro?: string }> {
+  const session = await requireAuditor();
 
-  const nome = String(formData.get("nome") ?? "").trim();
-  const cnpj = String(formData.get("cnpj") ?? "").trim();
-  const tipoUnidade = String(formData.get("tipoUnidade")) as TipoUnidade;
-  const tipoLoja = String(formData.get("tipoLoja")) as TipoLoja;
-  const grupoId = String(formData.get("grupoId") ?? "");
-  const regiaoId = String(formData.get("regiaoId") ?? "") || null;
-  const cicloContagem = parseCiclo(formData.get("cicloContagem"));
-  const ativa = formData.get("ativa") === "on";
+  const motivo = String(formData.get("motivo") ?? "").trim();
+  if (!motivo) {
+    return { erro: "Informe o motivo da alteração." };
+  }
 
-  await prisma.loja.update({
-    where: { id: lojaId },
-    data: { nome, cnpj, tipoUnidade, tipoLoja, grupoId, regiaoId, cicloContagem, ativa },
+  const depois = {
+    nome: String(formData.get("nome") ?? "").trim(),
+    cnpj: String(formData.get("cnpj") ?? "").trim(),
+    tipoUnidade: String(formData.get("tipoUnidade")) as TipoUnidade,
+    tipoLoja: String(formData.get("tipoLoja")) as TipoLoja,
+    grupoId: String(formData.get("grupoId") ?? ""),
+    regiaoId: String(formData.get("regiaoId") ?? "") || null,
+    cicloContagem: parseCiclo(formData.get("cicloContagem")),
+    ativa: formData.get("ativa") === "on",
+  };
+
+  await prisma.$transaction(async (tx) => {
+    const antes = await tx.loja.findUniqueOrThrow({ where: { id: lojaId } });
+
+    await tx.loja.update({ where: { id: lojaId }, data: depois });
+
+    await registrarAlteracoes(tx, {
+      tabela: "Loja",
+      registroId: lojaId,
+      usuarioId: session.user.id,
+      motivo,
+      antes,
+      depois,
+    });
   });
 
   revalidatePath("/lojas");
   revalidatePath(`/lojas/${lojaId}`);
+  return {};
+}
+
+export async function atualizarMetaDivergencia(lojaId: string, formData: FormData) {
+  const session = await requireAuditorOuDiretoria();
+
+  const percentualTexto = String(formData.get("metaDivergenciaPercentual") ?? "").trim();
+  const valorTexto = String(formData.get("metaDivergenciaValor") ?? "").trim();
+  const motivo = String(formData.get("motivo") ?? "").trim() || "Meta de divergência atualizada";
+
+  const depois = {
+    metaDivergenciaPercentual: percentualTexto ? percentualTexto : null,
+    metaDivergenciaValor: valorTexto ? valorTexto : null,
+  };
+
+  await prisma.$transaction(async (tx) => {
+    const antes = await tx.loja.findUniqueOrThrow({ where: { id: lojaId } });
+
+    await tx.loja.update({
+      where: { id: lojaId },
+      data: {
+        metaDivergenciaPercentual: depois.metaDivergenciaPercentual,
+        metaDivergenciaValor: depois.metaDivergenciaValor,
+      },
+    });
+
+    await registrarAlteracoes(tx, {
+      tabela: "Loja",
+      registroId: lojaId,
+      usuarioId: session.user.id,
+      motivo,
+      antes: {
+        metaDivergenciaPercentual: antes.metaDivergenciaPercentual,
+        metaDivergenciaValor: antes.metaDivergenciaValor,
+      },
+      depois,
+    });
+  });
+
+  revalidatePath(`/lojas/${lojaId}`);
+  revalidatePath("/ranking");
 }
 
 export async function vincularGerente(lojaId: string, formData: FormData) {

@@ -131,14 +131,21 @@ model Loja {
   grupoAuditoria String?
   ativa          Boolean        @default(true)
 
+  // Item 10.2: limite aceitável de divergência, definido pela Diretoria/Auditor
+  // (nao e um valor fixo do sistema). Null = sem meta definida ainda.
+  metaDivergenciaPercentual Decimal? @db.Decimal(5, 2)
+  metaDivergenciaValor      Decimal? @db.Decimal(14, 2)
+
   grupoId String
   grupo   Grupo  @relation(fields: [grupoId], references: [id])
 
   regiaoId String?
   regiao   Regiao? @relation(fields: [regiaoId], references: [id])
 
-  gerentes LojaGerente[]
-  ciclos   Ciclo[]
+  gerentes         LojaGerente[]
+  ciclos           Ciclo[]
+  defeitos         Defeito[]
+  logisticaReversa LogisticaReversa[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -159,9 +166,12 @@ model User {
   perfil    PerfilAcesso
   ativo     Boolean      @default(true)
 
-  lojasGeridas     LojaGerente[]
-  ciclosCriados    Ciclo[]
-  arquivosEnviados ArquivoImportado[]
+  lojasGeridas           LojaGerente[]
+  ciclosCriados          Ciclo[]
+  arquivosEnviados       ArquivoImportado[]
+  defeitosCriados        Defeito[]
+  logisticaReversaCriada LogisticaReversa[]
+  alteracoesRegistradas  LogAlteracao[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -363,4 +373,82 @@ model Faturamento {
   periodoTexto   String // ex: "AGOSTO", conforme o relatorio de origem
 
   createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Defeitos (item 7) e Logistica Reversa (item 8) - registro manual, nao fazem
+// parte do lote de upload do ciclo (nao ha exemplo de arquivo de origem
+// pra esses dois; diferente dos outros modulos, o auditor lanca direto).
+// ---------------------------------------------------------------------------
+
+enum StatusReembolso {
+  PENDENTE
+  PARCIAL
+  INTEGRAL
+}
+
+model Defeito {
+  id     String @id @default(cuid())
+  lojaId String
+  loja   Loja   @relation(fields: [lojaId], references: [id])
+
+  numeroNotaFiscal String
+  dataEnvio        DateTime
+  valorEnviado     Decimal  @db.Decimal(14, 2)
+  descricaoItens   String?
+
+  statusReembolso          StatusReembolso @default(PENDENTE)
+  valorReembolsado         Decimal         @default(0) @db.Decimal(14, 2)
+  dataRecebimentoReembolso DateTime?
+
+  observacao String?
+
+  createdByUserId String
+  createdBy       User   @relation(fields: [createdByUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lojaId])
+}
+
+model LogisticaReversa {
+  id     String @id @default(cuid())
+  lojaId String
+  loja   Loja   @relation(fields: [lojaId], references: [id])
+
+  mesReferencia Int // 1-12
+  anoReferencia Int
+  volumeItens   Int?
+  valorTotal    Decimal @db.Decimal(14, 2)
+  observacao    String?
+
+  createdByUserId String
+  createdBy       User   @relation(fields: [createdByUserId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([lojaId, mesReferencia, anoReferencia])
+  @@index([lojaId])
+}
+
+// Item 10.5: toda edicao em dado ja lancado fica registrada, com motivo
+// obrigatorio. Generico o bastante pra cobrir qualquer tabela (campo
+// "tabela" guarda o nome do model alterado).
+model LogAlteracao {
+  id String @id @default(cuid())
+
+  tabela        String
+  registroId    String
+  campo         String
+  valorAnterior String?
+  valorNovo     String?
+  motivo        String
+
+  usuarioId String
+  usuario   User   @relation(fields: [usuarioId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([tabela, registroId])
 }

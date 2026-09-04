@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { LojaFields } from "../loja-fields";
-import { atualizarLoja, vincularGerente, desvincularGerente } from "../actions";
+import { vincularGerente, desvincularGerente } from "../actions";
+import { LojaEditForm } from "./loja-edit-form";
+import { MetaDivergenciaForm } from "./meta-divergencia-form";
 
 const PERFIL_GERENTE_POR_TIPO = {
   VAREJO: "GERENTE_VAREJO",
@@ -86,33 +87,22 @@ export default async function LojaDetalhePage({
       </div>
 
       {podeGerenciar ? (
-        <form action={atualizarLoja.bind(null, loja.id)} className="flex max-w-lg flex-col gap-4">
-          <LojaFields
-            grupos={grupos}
-            regioes={regioes}
-            pdvEditavel={false}
-            defaultValues={{
-              pdv: loja.pdv,
-              nome: loja.nome,
-              cnpj: loja.cnpj,
-              tipoUnidade: loja.tipoUnidade,
-              tipoLoja: loja.tipoLoja,
-              grupoId: loja.grupoId,
-              regiaoId: loja.regiaoId,
-              cicloContagem: loja.cicloContagem,
-            }}
-          />
-          <label className="flex items-center gap-2 text-sm text-neutral-700">
-            <input type="checkbox" name="ativa" defaultChecked={loja.ativa} />
-            Loja ativa
-          </label>
-          <button
-            type="submit"
-            className="mt-2 w-fit rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-800"
-          >
-            Salvar alterações
-          </button>
-        </form>
+        <LojaEditForm
+          lojaId={loja.id}
+          grupos={grupos}
+          regioes={regioes}
+          loja={{
+            pdv: loja.pdv,
+            nome: loja.nome,
+            cnpj: loja.cnpj,
+            tipoUnidade: loja.tipoUnidade,
+            tipoLoja: loja.tipoLoja,
+            grupoId: loja.grupoId,
+            regiaoId: loja.regiaoId,
+            cicloContagem: loja.cicloContagem,
+            ativa: loja.ativa,
+          }}
+        />
       ) : (
         <dl className="grid max-w-lg grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <dt className="text-neutral-500">CNPJ</dt>
@@ -124,6 +114,17 @@ export default async function LojaDetalhePage({
           <dt className="text-neutral-500">Ciclo</dt>
           <dd className="text-neutral-900">{loja.cicloContagem ?? "não definido"}</dd>
         </dl>
+      )}
+
+      {(session.user.perfil === "AUDITOR" || session.user.perfil === "DIRETORIA") && (
+        <div>
+          <h2 className="mb-3 text-sm font-medium text-neutral-500">Meta de divergência</h2>
+          <MetaDivergenciaForm
+            lojaId={loja.id}
+            metaDivergenciaPercentual={loja.metaDivergenciaPercentual?.toString() ?? null}
+            metaDivergenciaValor={loja.metaDivergenciaValor?.toString() ?? null}
+          />
+        </div>
       )}
 
       <div>
