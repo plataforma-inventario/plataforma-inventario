@@ -39,14 +39,40 @@ export async function importarArquivos(
     return { erro: "Selecione ao menos um arquivo." };
   }
 
+  // Primeira passada: detecta o tipo e tenta extrair o PDV de cada arquivo,
+  // sem processar/gravar nada ainda. Requisição nunca tem PDV no próprio
+  // conteúdo (item 6 do briefing) - se o resto do lote (inventário,
+  // compra/venda, ajuste, faturamento) apontar pra uma ÚNICA loja, a
+  // Requisição sem PDV é inferida como sendo dessa mesma loja, já que os
+  // arquivos de um lançamento são sempre enviados juntos (item 2.1).
+  const preparados: {
+    nomeArquivo: string;
+    buffer: Buffer<ArrayBuffer>;
+    mimeType: string;
+    deteccao: Awaited<ReturnType<typeof detectarTipoArquivo>>;
+    pdv: number | null;
+  }[] = [];
+  for (const file of arquivos) {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const deteccao = detectarTipoArquivo(buffer, file.name);
+    const pdv =
+      deteccao.tipo !== "DESCONHECIDO" && deteccao.tipo !== "DEVOLUCAO"
+        ? await extrairLojaPdv(deteccao.tipo, buffer)
+        : null;
+    preparados.push({ nomeArquivo: file.name, buffer, mimeType: file.type, deteccao, pdv });
+  }
+
+  const pdvsDoLote = new Set(
+    preparados
+      .filter((p) => p.deteccao.tipo !== "REQUISICAO" && p.pdv !== null)
+      .map((p) => p.pdv)
+  );
+  const pdvInferidoParaRequisicao = pdvsDoLote.size === 1 ? [...pdvsDoLote][0] : null;
+
   const resultados: ResultadoImportacao[] = [];
 
-  for (const file of arquivos) {
-    const nomeArquivo = file.name;
+  for (const { nomeArquivo, buffer, mimeType, deteccao, pdv: pdvProprio } of preparados) {
     try {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const deteccao = detectarTipoArquivo(buffer, nomeArquivo);
-
       if (deteccao.tipo === "DESCONHECIDO") {
         resultados.push({ nomeArquivo, status: "ERRO", mensagem: deteccao.motivo });
         continue;
@@ -56,7 +82,7 @@ export async function importarArquivos(
         const r = await importarArquivoDevolucao(
           buffer,
           nomeArquivo,
-          file.type || "text/csv",
+          mimeType || "text/csv",
           session.user.id
         );
         resultados.push({ nomeArquivo, status: r.status, mensagem: `Devolução — ${r.mensagem}` });
@@ -65,7 +91,13 @@ export async function importarArquivos(
 
       const categoria = deteccao.tipo as CategoriaArquivo;
       const rotulo = ROTULO_CATEGORIA[categoria];
-      const pdv = await extrairLojaPdv(categoria, buffer);
+
+      let pdv = pdvProprio;
+      let inferidoDoLote = false;
+      if (!pdv && categoria === "REQUISICAO" && pdvInferidoParaRequisicao) {
+        pdv = pdvInferidoParaRequisicao;
+        inferidoDoLote = true;
+      }
 
       if (!pdv) {
         resultados.push({
@@ -125,9 +157,9 @@ export async function importarArquivos(
             cicloId: ciclo.id,
             categoria,
             nomeArquivo,
-            tipoMime: file.type || "application/octet-stream",
+            tipoMime: mimeType || "application/octet-stream",
             hashConteudo,
-            tamanhoBytes: file.size,
+            tamanhoBytes: buffer.length,
             conteudo: buffer,
             uploadedByUserId: session.user.id,
           },
@@ -139,10 +171,13 @@ export async function importarArquivos(
           data: { statusParsing: status, resumoParsing: resumo, avisosParsing: avisos },
         });
 
+        const notaInferencia = inferidoDoLote
+          ? " (loja inferida a partir dos outros arquivos do lote, já que Requisição não tem PDV próprio)"
+          : "";
         resultados.push({
           nomeArquivo,
           status: status === StatusParsing.ERRO ? "ERRO" : status === StatusParsing.AVISO ? "AVISO" : "OK",
-          mensagem: `${rotulo} — loja ${pdv} (${loja.nome}) — ${resumo}`,
+          mensagem: `${rotulo} — loja ${pdv} (${loja.nome})${notaInferencia} — ${resumo}`,
         });
       });
     } catch (e) {

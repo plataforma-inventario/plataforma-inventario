@@ -42,12 +42,20 @@ export default async function RequisicoesPage({
             Demonstradores, brindes, vencidos, premiações, perda/roubo e material auxiliar.
           </p>
         </div>
-        <a
-          href={`/requisicoes/export${query ? `?${query}` : ""}`}
-          className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
-        >
-          Exportar Excel
-        </a>
+        <div className="flex shrink-0 gap-2">
+          <a
+            href="/requisicoes/comparativo"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+          >
+            Comparar lojas
+          </a>
+          <a
+            href={`/requisicoes/export${query ? `?${query}` : ""}`}
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+          >
+            Exportar Excel
+          </a>
+        </div>
       </div>
 
       <FiltroRelatorio lojas={lojas} valores={valores} ciclosPorLoja={ciclosPorLoja} />
