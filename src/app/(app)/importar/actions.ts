@@ -8,6 +8,7 @@ import { detectarTipoArquivo } from "@/lib/parsers/detectar";
 import { extrairLojaPdv } from "@/lib/parsers/extrair-loja";
 import { processarEArmazenar } from "@/lib/parsers/processar";
 import { importarArquivoDevolucao } from "@/lib/parsers/processar-devolucao";
+import { importarArquivoLogisticaReversa } from "@/lib/parsers/processar-logistica-reversa";
 import { CategoriaArquivo, StatusParsing } from "@/generated/prisma/client";
 
 export type ResultadoImportacao = {
@@ -56,7 +57,7 @@ export async function importarArquivos(
     const buffer = Buffer.from(await file.arrayBuffer());
     const deteccao = detectarTipoArquivo(buffer, file.name);
     const pdv =
-      deteccao.tipo !== "DESCONHECIDO" && deteccao.tipo !== "DEVOLUCAO"
+      deteccao.tipo !== "DESCONHECIDO" && deteccao.tipo !== "DEVOLUCAO" && deteccao.tipo !== "LOGISTICA_REVERSA"
         ? await extrairLojaPdv(deteccao.tipo, buffer)
         : null;
     preparados.push({ nomeArquivo: file.name, buffer, mimeType: file.type, deteccao, pdv });
@@ -86,6 +87,17 @@ export async function importarArquivos(
           session.user.id
         );
         resultados.push({ nomeArquivo, status: r.status, mensagem: `Devolução — ${r.mensagem}` });
+        continue;
+      }
+
+      if (deteccao.tipo === "LOGISTICA_REVERSA") {
+        const r = await importarArquivoLogisticaReversa(
+          buffer,
+          nomeArquivo,
+          mimeType || "text/csv",
+          session.user.id
+        );
+        resultados.push({ nomeArquivo, status: r.status, mensagem: `Logística Reversa — ${r.mensagem}` });
         continue;
       }
 
@@ -191,6 +203,7 @@ export async function importarArquivos(
 
   revalidatePath("/lojas");
   revalidatePath("/defeitos");
+  revalidatePath("/logistica-reversa");
   revalidatePath("/ciclos", "layout");
 
   return { resultados };

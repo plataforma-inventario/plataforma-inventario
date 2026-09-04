@@ -175,6 +175,7 @@ model User {
   defeitosCriados           Defeito[]
   insucessosCriados         Insucesso[]
   logisticaReversaCriada    LogisticaReversa[]
+  arquivosLogisticaReversaEnviados ArquivoLogisticaReversa[]
   alteracoesRegistradas     LogAlteracao[]
   imagensAgendaEnviadas     ImagemAgenda[]
   visitasAgendadasCriadas   VisitaAgendada[]
@@ -495,6 +496,31 @@ model Insucesso {
   @@index([lojaId])
 }
 
+// Relatório de "notas fiscais de venda" só que com CFOP de logística
+// reversa (5949/6949, material pós-consumo enviado pra cooperativa de
+// reciclagem) em vez de transferência entre lojas (5152) - mesmo cabeçalho,
+// diferenciado só pelo CFOP. Chega uma vez por mês, com TODAS as lojas
+// juntas num único arquivo (não é por ciclo/loja como os outros 6).
+model ArquivoLogisticaReversa {
+  id           String @id @default(cuid())
+  nomeArquivo  String
+  tipoMime     String
+  hashConteudo String @unique
+  tamanhoBytes Int
+  conteudo     Bytes
+
+  uploadedByUserId String
+  uploadedBy       User   @relation(fields: [uploadedByUserId], references: [id])
+
+  statusParsing StatusParsing @default(PENDENTE)
+  resumoParsing String?
+  avisosParsing String[]      @default([])
+
+  createdAt DateTime @default(now())
+
+  registros LogisticaReversa[]
+}
+
 model LogisticaReversa {
   id     String @id @default(cuid())
   lojaId String
@@ -505,6 +531,11 @@ model LogisticaReversa {
   volumeItens   Int?
   valorTotal    Decimal @db.Decimal(14, 2)
   observacao    String?
+
+  // Preenchido quando o registro veio de upload automático (em vez de
+  // lançamento manual) - guarda de qual arquivo/mês vieram os números.
+  arquivoOrigemId String?
+  arquivoOrigem   ArquivoLogisticaReversa? @relation(fields: [arquivoOrigemId], references: [id])
 
   createdByUserId String
   createdBy       User   @relation(fields: [createdByUserId], references: [id])

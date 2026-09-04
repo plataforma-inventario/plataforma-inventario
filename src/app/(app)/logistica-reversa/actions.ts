@@ -3,6 +3,32 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAuditor } from "@/lib/authz";
+import { importarArquivoLogisticaReversa } from "@/lib/parsers/processar-logistica-reversa";
+
+export async function uploadLogisticaReversa(
+  _prevState: { erro?: string; aviso?: string } | undefined,
+  formData: FormData
+): Promise<{ erro?: string; aviso?: string }> {
+  const session = await requireAuditor();
+
+  const file = formData.get("arquivo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { erro: "Selecione um arquivo." };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const resultado = await importarArquivoLogisticaReversa(
+    buffer,
+    file.name,
+    file.type || "text/csv",
+    session.user.id
+  );
+
+  revalidatePath("/logistica-reversa");
+  if (resultado.status === "ERRO") return { erro: resultado.mensagem };
+  if (resultado.status === "AVISO") return { aviso: resultado.mensagem };
+  return {};
+}
 
 export async function criarLogisticaReversa(
   _prevState: { erro?: string } | undefined,

@@ -2,8 +2,13 @@ import { parseCsvRelatorio, pick } from "./util";
 import { CategoriaArquivo } from "@/generated/prisma/client";
 
 export type TipoDetectado =
-  | { tipo: CategoriaArquivo | "DEVOLUCAO" }
+  | { tipo: CategoriaArquivo | "DEVOLUCAO" | "LOGISTICA_REVERSA" }
   | { tipo: "DESCONHECIDO"; motivo: string };
+
+// CFOPs usados no relatório de logística reversa (material pós-consumo pra
+// cooperativa de reciclagem) - o resto do CFOP 5xxx/6xxx nesse formato
+// ("venda") é transferência real entre lojas (5152).
+const CFOPS_LOGISTICA_REVERSA = new Set(["5949", "6949"]);
 
 /**
  * Central de importação: identifica sozinho qual dos formatos conhecidos um
@@ -43,8 +48,12 @@ export function detectarTipoArquivo(buffer: Buffer, nomeArquivo: string): TipoDe
     return { tipo: CategoriaArquivo.REQUISICAO };
   }
   if (colunas.has("cliente") && colunas.has("chave")) {
-    // formato "venda" - so' transferencia de saida (ver memoria do projeto:
-    // usuario confirmou que esse relatorio nunca mistura venda real ao consumidor)
+    // formato "venda" - nunca mistura venda real ao consumidor (usuario
+    // confirmou), mas cobre dois casos com o mesmo cabecalho: transferencia
+    // de saida entre lojas (CFOP 5152) e logistica reversa - material
+    // pos-consumo pra cooperativa de reciclagem (CFOP 5949/6949).
+    const cfop = pick(primeira, ["CFOP"]);
+    if (CFOPS_LOGISTICA_REVERSA.has(cfop)) return { tipo: "LOGISTICA_REVERSA" };
     return { tipo: CategoriaArquivo.TRANSFERENCIA_SAIDA };
   }
   if (colunas.has("código do fornecedor") || colunas.has("codigo do fornecedor")) {
