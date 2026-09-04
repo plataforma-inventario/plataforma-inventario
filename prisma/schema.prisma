@@ -117,14 +117,19 @@ model Regiao {
 }
 
 model Loja {
-  id            String         @id @default(cuid())
-  pdv           Int            @unique // codigo BPCS
-  nome          String
-  cnpj          String         @unique
-  tipoUnidade   TipoUnidade
-  tipoLoja      TipoLoja
-  cicloContagem CicloContagem?
-  ativa         Boolean        @default(true)
+  id             String         @id @default(cuid())
+  pdv            Int            @unique // codigo BPCS
+  nome           String
+  cnpj           String         @unique
+  tipoUnidade    TipoUnidade
+  tipoLoja       TipoLoja
+  cicloContagem  CicloContagem?
+  // Subgrupo do calendário fixo de auditoria (ex: "B1", "B2", "T1"..."T3") -
+  // define em quais meses exatos essa loja e contada dentro do seu ciclo
+  // (bimestral/trimestral). Null para mensal (conta todo mes) ou quando nao
+  // definido. Ver docs/BRIEFING.md para a tabela de meses por subgrupo.
+  grupoAuditoria String?
+  ativa          Boolean        @default(true)
 
   grupoId String
   grupo   Grupo  @relation(fields: [grupoId], references: [id])

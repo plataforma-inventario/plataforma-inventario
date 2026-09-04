@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { PerfilAcesso, TipoLoja, TipoUnidade } from "../src/generated/prisma/client";
+import { CicloContagem, PerfilAcesso, TipoLoja, TipoUnidade } from "../src/generated/prisma/client";
 import { prisma } from "../src/lib/prisma";
 
 // Dados de origem: "DADOS BOTICÁRIO 2025.xlsx", fornecido pelo usuário em
@@ -66,6 +66,36 @@ const SHERLIN: { nome: string; razaoSocial: string; lojas: LojaSeed[] } = {
   ],
 };
 
+// Fonte: "Contagem_Ciclica_de_Inventario_Proposta_2027" (slide "Grupos fixos
+// de auditoria"), fornecido pelo usuário em 2026-09-04. Mapeado por PDV, não
+// pelo nome informal usado no slide (alguns nomes do slide são apelidos
+// locais, diferentes do nome oficial já cadastrado). Ver docs/BRIEFING.md
+// para a tabela de meses de cada subgrupo (B1/B2/T1/T2/T3).
+const GRUPOS_AUDITORIA: Record<string, number[]> = {
+  MENSAL: [11101, 24142, 22865, 24151, 24152],
+  B1: [19142, 22864, 24120, 19144],
+  B2: [24143, 19143, 22871, 19141],
+  T1: [22872, 22873, 24144, 19145],
+  T2: [24147, 24150, 19148, 22729],
+  T3: [24148, 24146, 24145, 22876, 22874],
+};
+
+async function seedGruposAuditoria() {
+  for (const [grupo, pdvs] of Object.entries(GRUPOS_AUDITORIA)) {
+    const cicloContagem =
+      grupo === "MENSAL"
+        ? CicloContagem.MENSAL
+        : grupo.startsWith("B")
+          ? CicloContagem.BIMESTRAL
+          : CicloContagem.TRIMESTRAL;
+    const grupoAuditoria = grupo === "MENSAL" ? null : grupo;
+
+    for (const pdv of pdvs) {
+      await prisma.loja.update({ where: { pdv }, data: { cicloContagem, grupoAuditoria } });
+    }
+  }
+}
+
 async function seedGrupo(
   grupoData: { nome: string; razaoSocial: string; lojas: LojaSeed[] },
   tipoLoja: TipoLoja
@@ -118,6 +148,8 @@ async function main() {
 
   // Grupo Sherlin/SH Nunes: todo o grupo é varejo.
   await seedGrupo(SHERLIN, TipoLoja.VAREJO);
+
+  await seedGruposAuditoria();
 
   // Usuário administrador inicial (perfil Auditor). Senha temporária gerada
   // apenas na primeira vez que este usuário é criado — trocar após o login.

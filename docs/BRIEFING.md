@@ -123,3 +123,16 @@ Upload de CSV e PDF alimentando cada categoria do fluxo (2.1). Padrão de coluna
 
 - **2026-09-04 — Hospedagem:** usuário pediu opção sem custo. Decisão: stack de custo zero via free tiers (Cloudflare Pages/Workers para o app Next.js, Neon para Postgres, Cloudflare R2 para armazenamento de arquivos). Risco aceito conscientemente: sem SLA/suporte pago, limites de uso que podem exigir upgrade no futuro, backups precisam ser configurados manualmente.
 - **2026-09-04 — PDFs:** confirmado que os PDFs enviados (NFs, requisições etc.) são nativos/digitais (gerados por sistema, texto selecionável), não escaneados. Parsing pode confiar em extração de texto estruturado (ex: pdf-parse), sem necessidade de OCR.
+
+### Grupos fixos de auditoria (calendário de contagem cíclica)
+
+Fonte: slide "Grupos fixos de auditoria" do arquivo `Contagem_Ciclica_de_Inventario_Proposta_2027.pptx`, fornecido pelo usuário em 2026-09-04. Vale só para as 26 lojas de varejo (grupo Sherlin/SH Nunes) — as lojas de revenda (Francisco Nunes) e o Centro de Distribuição não entram nesse calendário.
+
+- **Mensal** (5 lojas) — contagem todo mês, fevereiro a novembro: PDV 11101, 24142, 22865, 24151, 24152.
+- **Bimestral B1** (4 lojas) — fev/abr/jun/ago/out: PDV 19142, 22864, 24120, 19144.
+- **Bimestral B2** (4 lojas) — mar/mai/jul/set/nov: PDV 24143, 19143, 22871, 19141.
+- **Trimestral T1** (4 lojas) — fev/mai/ago: PDV 22872, 22873, 24144, 19145.
+- **Trimestral T2** (4 lojas) — mar/jun/set: PDV 24147, 24150, 19148, 22729.
+- **Trimestral T3** (5 lojas) — abr/jul/out: PDV 24148, 24146, 24145, 22876, 22874.
+
+Nenhum grupo conta em dezembro (blackout do item 3.0 — foco em vendas de Natal) nem em janeiro (mês do inventário completo pós-Natal, item 3.0). O campo `Loja.grupoAuditoria` guarda o subgrupo (B1/B2/T1/T2/T3, null para mensal) — usar essa tabela para calcular os meses exatos de vencimento quando o alerta de atraso (item 10.1) e o calendário de visitas (item 10.6) forem construídos.
