@@ -22,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const itensNav = [
     { href: "/importar", label: "Central de importação", oculto: !podeGerenciar },
     { href: "/lojas", label: "Lojas", oculto: false },
+    { href: "/inventarios", label: "Inventários", oculto: false },
     { href: "/ranking", label: "Ranking", oculto: false },
     { href: "/ajustes", label: "Ajustes", oculto: false },
     { href: "/transferencias", label: "Transferências", oculto: false },

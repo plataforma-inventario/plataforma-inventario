@@ -10,6 +10,7 @@ export type ValoresFiltro = {
   ano?: string;
   tipo?: string;
   direcao?: string;
+  tipoInventario?: string;
 };
 
 const MESES = [
@@ -21,10 +22,12 @@ export function FiltroRelatorio({
   lojas,
   valores,
   mostrarDirecao,
+  mostrarTipoInventario,
 }: {
   lojas: LojaOpcao[];
   valores: ValoresFiltro;
   mostrarDirecao?: boolean;
+  mostrarTipoInventario?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -102,6 +105,18 @@ export function FiltroRelatorio({
           <option value="">Entrada e saída</option>
           <option value="ENTRADA">Só entrada</option>
           <option value="SAIDA">Só saída</option>
+        </select>
+      )}
+
+      {mostrarTipoInventario && (
+        <select
+          value={valores.tipoInventario ?? ""}
+          onChange={(e) => atualizar("tipoInventario", e.target.value)}
+          className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
+        >
+          <option value="">Cíclico e completo</option>
+          <option value="CICLICO">Só cíclico</option>
+          <option value="COMPLETO">Só completo</option>
         </select>
       )}
     </div>

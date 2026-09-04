@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { lojasVisiveisWhere } from "@/lib/access";
-import type { DirecaoMovimento, PerfilAcesso, TipoLoja } from "@/generated/prisma/client";
+import { calcularDivergencia } from "@/lib/divergencia";
+import type { DirecaoMovimento, PerfilAcesso, TipoInventario, TipoLoja } from "@/generated/prisma/client";
 
 type Usuario = { id: string; perfil: PerfilAcesso };
 
@@ -10,6 +11,7 @@ export type FiltrosRelatorio = {
   ano?: number;
   tipoLoja?: TipoLoja;
   direcao?: DirecaoMovimento;
+  tipoInventario?: TipoInventario;
 };
 
 async function lojaIdsVisiveis(user: Usuario, tipoLoja?: TipoLoja) {
@@ -96,4 +98,59 @@ export async function getRequisicoes(user: Usuario, filtros: FiltrosRelatorio = 
   const custoTotal = itens.reduce((acc, i) => acc + Number(i.custoTotal), 0);
 
   return { itens, custoTotal };
+}
+
+export type LinhaInventarioRelatorio = {
+  cicloId: string;
+  lojaId: string;
+  pdv: number;
+  nomeLoja: string;
+  tipoLoja: TipoLoja;
+  regiaoNome: string | null;
+  cicloContagem: string | null;
+  dataFim: Date;
+  tipoInventario: TipoInventario;
+  divergenciaValor: number;
+  percentualSobreEstoque: number | null;
+};
+
+// Item 3/9: lista de inventários cruzando todas as lojas, com os filtros
+// pedidos (loja, mês, tipo de loja, ciclo, tipo de inventário).
+export async function getInventarios(
+  user: Usuario,
+  filtros: FiltrosRelatorio = {}
+): Promise<LinhaInventarioRelatorio[]> {
+  const ids = await lojaIdsVisiveis(user, filtros.tipoLoja);
+
+  const ciclos = await prisma.ciclo.findMany({
+    where: {
+      status: "FECHADO",
+      lojaId: filtros.lojaId ? filtros.lojaId : { in: ids },
+      tipoInventario: filtros.tipoInventario,
+      dataFim: filtroData(filtros.mes, filtros.ano),
+    },
+    include: { loja: { include: { regiao: true } } },
+    orderBy: { dataFim: "desc" },
+    take: 300,
+  });
+
+  const linhas: LinhaInventarioRelatorio[] = [];
+  for (const ciclo of ciclos) {
+    const d = await calcularDivergencia(ciclo.id);
+    if (d.totalItens === 0) continue;
+    linhas.push({
+      cicloId: ciclo.id,
+      lojaId: ciclo.loja.id,
+      pdv: ciclo.loja.pdv,
+      nomeLoja: ciclo.loja.nome,
+      tipoLoja: ciclo.loja.tipoLoja,
+      regiaoNome: ciclo.loja.regiao?.nome ?? null,
+      cicloContagem: ciclo.loja.cicloContagem,
+      dataFim: ciclo.dataFim,
+      tipoInventario: ciclo.tipoInventario,
+      divergenciaValor: d.divergenciaValor,
+      percentualSobreEstoque: d.percentualSobreEstoque,
+    });
+  }
+  return linhas;
 }

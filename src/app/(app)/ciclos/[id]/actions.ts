@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuditor } from "@/lib/authz";
 import { CategoriaArquivo, StatusCiclo, StatusParsing } from "@/generated/prisma/client";
 import { processarEArmazenar } from "@/lib/parsers/processar";
+import { registrarAlteracoes } from "@/lib/log-alteracao";
 
 const TODAS_CATEGORIAS = Object.values(CategoriaArquivo);
 
@@ -63,8 +64,21 @@ export async function uploadArquivo(
 }
 
 export async function removerArquivo(cicloId: string, arquivoId: string) {
-  await requireAuditor();
-  await prisma.arquivoImportado.delete({ where: { id: arquivoId } });
+  const session = await requireAuditor();
+
+  await prisma.$transaction(async (tx) => {
+    const arquivo = await tx.arquivoImportado.findUniqueOrThrow({ where: { id: arquivoId } });
+    await tx.arquivoImportado.delete({ where: { id: arquivoId } });
+    await registrarAlteracoes(tx, {
+      tabela: "ArquivoImportado",
+      registroId: cicloId,
+      usuarioId: session.user.id,
+      motivo: "Arquivo removido do lançamento",
+      antes: { categoria: arquivo.categoria, nomeArquivo: arquivo.nomeArquivo },
+      depois: { categoria: null, nomeArquivo: null },
+    });
+  });
+
   revalidatePath(`/ciclos/${cicloId}`);
 }
 

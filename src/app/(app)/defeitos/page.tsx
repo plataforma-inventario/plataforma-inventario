@@ -80,13 +80,25 @@ export default async function DefeitosPage({
     take: 20,
   });
 
+  const query = new URLSearchParams(
+    Object.entries({ loja: lojaFiltro, tipo: tipoFiltro }).filter(([, v]) => v) as [string, string][]
+  ).toString();
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-medium text-neutral-900">Defeitos</h1>
-        <p className="text-sm text-neutral-500">
-          Notas fiscais de devolução (defeito e falta de mercadoria) e status do reembolso.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-lg font-medium text-neutral-900">Defeitos</h1>
+          <p className="text-sm text-neutral-500">
+            Notas fiscais de devolução (defeito e falta de mercadoria) e status do reembolso.
+          </p>
+        </div>
+        <a
+          href={`/defeitos/export${query ? `?${query}` : ""}`}
+          className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+        >
+          Exportar Excel
+        </a>
       </div>
 
       <FiltroDefeitos lojas={lojas} loja={lojaFiltro} tipo={tipoFiltro} />

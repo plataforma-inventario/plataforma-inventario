@@ -35,12 +35,20 @@ export default async function RankingPage() {
             melhor.
           </p>
         </div>
-        <a
-          href="/ranking/export"
-          className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
-        >
-          Exportar Excel
-        </a>
+        <div className="flex shrink-0 gap-2">
+          <a
+            href="/ranking/export"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+          >
+            Exportar Excel
+          </a>
+          <a
+            href="/ranking/export-pdf"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+          >
+            Exportar PDF
+          </a>
+        </div>
       </div>
 
       {linhas.length === 0 ? (
