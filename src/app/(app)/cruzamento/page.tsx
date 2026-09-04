@@ -4,13 +4,15 @@ import { auth } from "@/auth";
 import { getDivergenciasCruzadas } from "@/lib/cruzamento";
 
 const ROTULO_CONFIANCA: Record<string, string> = {
-  PROVAVEL: "Provável transferência não registrada",
-  SUSPEITA: "Suspeita",
+  CONFIRMADA: "Confirmada",
+  SUSPEITA_NIVEL_2: "Suspeita (nível 2)",
+  SUSPEITA_NIVEL_1: "Suspeita (nível 1)",
 };
 
 const COR_CONFIANCA: Record<string, string> = {
-  PROVAVEL: "bg-red-50 text-red-700",
-  SUSPEITA: "bg-amber-50 text-amber-700",
+  CONFIRMADA: "bg-red-50 text-red-700",
+  SUSPEITA_NIVEL_2: "bg-amber-50 text-amber-700",
+  SUSPEITA_NIVEL_1: "bg-neutral-100 text-neutral-600",
 };
 
 export default async function CruzamentoPage() {
@@ -57,11 +59,23 @@ export default async function CruzamentoPage() {
                   <td className="px-4 py-2 text-neutral-700">
                     <Link href={`/lojas/${d.lojaFalta.id}`} className="hover:text-brand-dark hover:underline">
                       {d.lojaFalta.pdv} — {d.lojaFalta.nome}
+                    </Link>{" "}
+                    <Link
+                      href={`/ciclos/${d.lojaFalta.cicloId}`}
+                      className="text-xs text-neutral-400 hover:text-brand-dark hover:underline"
+                    >
+                      (ver lançamento)
                     </Link>
                   </td>
                   <td className="px-4 py-2 text-neutral-700">
                     <Link href={`/lojas/${d.lojaSobra.id}`} className="hover:text-brand-dark hover:underline">
                       {d.lojaSobra.pdv} — {d.lojaSobra.nome}
+                    </Link>{" "}
+                    <Link
+                      href={`/ciclos/${d.lojaSobra.cicloId}`}
+                      className="text-xs text-neutral-400 hover:text-brand-dark hover:underline"
+                    >
+                      (ver lançamento)
                     </Link>
                   </td>
                   <td className="px-4 py-2 text-neutral-700">{d.lojaSobra.quantidade}</td>
