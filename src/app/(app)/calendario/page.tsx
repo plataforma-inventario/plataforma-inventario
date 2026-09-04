@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { auth } from "@/auth";
 import { getCalendarioLojas } from "@/lib/calendario";
 
 const MESES = [
@@ -7,17 +8,29 @@ const MESES = [
 ];
 
 export default async function CalendarioPage() {
+  const session = await auth();
+  const podeGerenciar = session?.user.perfil === "AUDITOR";
   const lojas = await getCalendarioLojas();
   const atrasadas = lojas.filter((l) => l.atrasada);
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-medium text-neutral-900">Calendário de visitas</h1>
-        <p className="text-sm text-neutral-500">
-          Próximo mês esperado de inventário por loja, considerando o ciclo (mensal/bimestral/
-          trimestral) e o subgrupo do calendário fixo de auditoria.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-lg font-medium text-neutral-900">Calendário de visitas</h1>
+          <p className="text-sm text-neutral-500">
+            Próximo mês esperado de inventário por loja (ou o dia exato, quando já combinado),
+            considerando o ciclo e o subgrupo do calendário fixo de auditoria.
+          </p>
+        </div>
+        {podeGerenciar && (
+          <Link
+            href="/calendario/agenda"
+            className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+          >
+            Configurar agenda
+          </Link>
+        )}
       </div>
 
       {atrasadas.length > 0 && (
@@ -31,7 +44,10 @@ export default async function CalendarioPage() {
                 <Link href={`/lojas/${l.lojaId}`} className="hover:underline">
                   {l.pdv} — {l.nome}
                 </Link>{" "}
-                — esperado em {MESES[l.mesAnoEsperado.mes]}/{l.mesAnoEsperado.ano}
+                — esperado{" "}
+                {l.dataAgendada
+                  ? `em ${l.dataAgendada.toLocaleDateString("pt-BR")}`
+                  : `em ${MESES[l.mesAnoEsperado.mes]}/${l.mesAnoEsperado.ano}`}
               </li>
             ))}
           </ul>
@@ -62,7 +78,14 @@ export default async function CalendarioPage() {
                   {l.ultimoCicloDataFim ? l.ultimoCicloDataFim.toLocaleDateString("pt-BR") : "nenhum"}
                 </td>
                 <td className="px-4 py-2 text-neutral-700">
-                  {MESES[l.mesAnoEsperado.mes]}/{l.mesAnoEsperado.ano}
+                  {l.dataAgendada ? (
+                    <span>
+                      {l.dataAgendada.toLocaleDateString("pt-BR")}{" "}
+                      <span className="text-xs text-neutral-400">(combinado)</span>
+                    </span>
+                  ) : (
+                    `${MESES[l.mesAnoEsperado.mes]}/${l.mesAnoEsperado.ano}`
+                  )}
                 </td>
                 <td className={`px-4 py-2 font-medium ${l.atrasada ? "text-red-600" : "text-emerald-700"}`}>
                   {l.atrasada ? "Atrasada" : "Em dia"}

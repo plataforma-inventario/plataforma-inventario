@@ -13,6 +13,11 @@ const MESES_POR_GRUPO: Record<string, number[]> = {
   T3: [4, 7, 10],
 };
 
+// O cronograma fixo acima só passa a valer a partir deste ano (confirmado
+// pelo usuário em 2026-09-04) - antes disso o controle era manual em
+// planilha, então nenhuma loja deve ser cobrada/marcada como atrasada.
+const ANO_INICIO_CRONOGRAMA = 2027;
+
 export type LojaCalendario = {
   lojaId: string;
   pdv: number;
@@ -20,6 +25,9 @@ export type LojaCalendario = {
   grupo: string; // "MENSAL" | "B1" | ... - chave de exibição
   ultimoCicloDataFim: Date | null;
   mesAnoEsperado: { mes: number; ano: number };
+  // Dia exato já combinado (importado da agenda/Google Agenda), quando
+  // existir - sobrepõe o mesAnoEsperado (que só sabe o mês) na exibição.
+  dataAgendada: Date | null;
   atrasada: boolean;
 };
 
@@ -50,6 +58,11 @@ export async function getCalendarioLojas(): Promise<LojaCalendario[]> {
     },
   });
 
+  const visitasAgendadas = await prisma.visitaAgendada.findMany({
+    where: { lojaId: { in: lojas.map((l) => l.id) } },
+  });
+  const mapaVisitas = new Map(visitasAgendadas.map((v) => [`${v.lojaId}-${v.ano}-${v.mes}`, v]));
+
   const hoje = new Date();
   const resultado: LojaCalendario[] = [];
 
@@ -63,10 +76,14 @@ export async function getCalendarioLojas(): Promise<LojaCalendario[]> {
     let esperado: { mes: number; ano: number };
     if (ultimoCiclo) {
       esperado = proximoMesAno(mesesValidos, ultimoCiclo.dataFim.getMonth() + 1, ultimoCiclo.dataFim.getFullYear());
+    } else if (hoje.getFullYear() < ANO_INICIO_CRONOGRAMA) {
+      // cronograma novo ainda nao comecou: primeiro mes valido do ano em
+      // que ele passa a valer, nunca um mes ja passado do ano atual.
+      esperado = { mes: mesesValidos[0], ano: ANO_INICIO_CRONOGRAMA };
     } else {
-      // sem ciclo ainda: usa o mes valido mais recente ate hoje (o mais
-      // proximo "vencido"), caindo pro ano anterior se nenhum mes valido
-      // deste ano ja passou.
+      // cronograma ja em vigor, sem ciclo ainda: usa o mes valido mais
+      // recente ate hoje (o mais proximo "vencido"), caindo pro ano
+      // anterior se nenhum mes valido deste ano ja passou.
       const mesAtual = hoje.getMonth() + 1;
       const maisRecenteEsteAno = [...mesesValidos].reverse().find((m) => m <= mesAtual);
       esperado = maisRecenteEsteAno
@@ -74,9 +91,28 @@ export async function getCalendarioLojas(): Promise<LojaCalendario[]> {
         : { mes: mesesValidos[mesesValidos.length - 1], ano: hoje.getFullYear() - 1 };
     }
 
-    // fim do mes esperado, pra saber se ja venceu
-    const fimDoMesEsperado = new Date(esperado.ano, esperado.mes, 0, 23, 59, 59);
-    const atrasada = hoje > fimDoMesEsperado;
+    const visita = mapaVisitas.get(`${loja.id}-${esperado.ano}-${esperado.mes}`) ?? null;
+    const dataAgendada = visita?.dataAgendada ?? null;
+
+    let atrasada: boolean;
+    if (dataAgendada) {
+      // dia exato ja combinado: atraso e comparado contra esse dia, nao
+      // contra o fim do mes.
+      const fimDoDiaAgendado = new Date(
+        dataAgendada.getFullYear(),
+        dataAgendada.getMonth(),
+        dataAgendada.getDate(),
+        23,
+        59,
+        59
+      );
+      atrasada = hoje > fimDoDiaAgendado;
+    } else {
+      // fim do mes esperado, pra saber se ja venceu - so conta atraso
+      // depois que o cronograma novo comecar de fato.
+      const fimDoMesEsperado = new Date(esperado.ano, esperado.mes, 0, 23, 59, 59);
+      atrasada = hoje >= new Date(ANO_INICIO_CRONOGRAMA, 0, 1) && hoje > fimDoMesEsperado;
+    }
 
     resultado.push({
       lojaId: loja.id,
@@ -85,6 +121,7 @@ export async function getCalendarioLojas(): Promise<LojaCalendario[]> {
       grupo,
       ultimoCicloDataFim: ultimoCiclo?.dataFim ?? null,
       mesAnoEsperado: esperado,
+      dataAgendada,
       atrasada,
     });
   }

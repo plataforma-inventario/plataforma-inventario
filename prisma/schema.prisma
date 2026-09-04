@@ -147,6 +147,7 @@ model Loja {
   defeitos         Defeito[]
   insucessos       Insucesso[]
   logisticaReversa LogisticaReversa[]
+  visitasAgendadas VisitaAgendada[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -175,6 +176,8 @@ model User {
   insucessosCriados         Insucesso[]
   logisticaReversaCriada    LogisticaReversa[]
   alteracoesRegistradas     LogAlteracao[]
+  imagensAgendaEnviadas     ImagemAgenda[]
+  visitasAgendadasCriadas   VisitaAgendada[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -531,4 +534,53 @@ model LogAlteracao {
   createdAt DateTime @default(now())
 
   @@index([tabela, registroId])
+}
+
+// ---------------------------------------------------------------------------
+// Agenda de visitas (planejamento com dia exato, importado do print do
+// Google Agenda do Auditor - complementa o cronograma fixo por mês do
+// item 10.6, que só diz o MÊS esperado, não o dia exato já combinado).
+// ---------------------------------------------------------------------------
+
+// Print do Google Agenda de um mês/ano, guardado só como referência visual
+// enquanto o Auditor digita o dia exato de cada loja em VisitaAgendada.
+model ImagemAgenda {
+  id String @id @default(cuid())
+
+  ano Int
+  mes Int // 1-12
+
+  nomeArquivo  String
+  tipoMime     String
+  conteudo     Bytes
+  tamanhoBytes Int
+
+  uploadedByUserId String
+  uploadedBy       User   @relation(fields: [uploadedByUserId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([ano, mes])
+}
+
+// Dia exato combinado pra uma loja fazer o inventário num mês/ano -
+// complementa/sobrepõe o "mês esperado" calculado por cronograma fixo
+// quando o Auditor já digitou a data real vinda da agenda.
+model VisitaAgendada {
+  id String @id @default(cuid())
+
+  lojaId String
+  loja   Loja   @relation(fields: [lojaId], references: [id])
+
+  ano          Int
+  mes          Int // 1-12, redundante com dataAgendada mas facilita o filtro
+  dataAgendada DateTime
+
+  createdByUserId String
+  createdBy       User   @relation(fields: [createdByUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([lojaId, ano, mes])
 }
