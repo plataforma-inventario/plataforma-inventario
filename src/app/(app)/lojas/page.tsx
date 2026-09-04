@@ -24,11 +24,11 @@ export default async function LojasPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-medium text-neutral-900">Lojas ({lojas.length})</h1>
+        <h1 className="text-lg font-medium text-brand-dark">Lojas ({lojas.length})</h1>
         {podeGerenciar && (
           <Link
             href="/lojas/novo"
-            className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800"
+            className="rounded-md bg-brand-dark px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark-hover"
           >
             + Nova loja
           </Link>
@@ -56,7 +56,7 @@ export default async function LojasPage() {
                   </Link>
                 </td>
                 <td className="px-4 py-2">
-                  <Link href={`/lojas/${loja.id}`} className="block text-neutral-900 hover:underline">
+                  <Link href={`/lojas/${loja.id}`} className="block text-neutral-900 hover:text-brand-dark hover:underline">
                     {loja.nome}
                   </Link>
                 </td>

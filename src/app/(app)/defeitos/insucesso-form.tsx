@@ -85,7 +85,7 @@ export function InsucessoForm({ lojas }: { lojas: LojaOpcao[] }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-fit rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+        className="w-fit rounded-md bg-brand-dark px-3 py-2 text-sm font-medium text-white hover:bg-brand-dark-hover disabled:opacity-50"
       >
         {pending ? "Salvando..." : "Registrar insucesso"}
       </button>

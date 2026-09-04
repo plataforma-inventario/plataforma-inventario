@@ -30,7 +30,7 @@ export default async function AjustesPage({ searchParams }: { searchParams: Prom
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-medium text-neutral-900">Ajustes de estoque</h1>
+          <h1 className="text-lg font-medium text-brand-dark">Ajustes de estoque</h1>
           <p className="text-sm text-neutral-500">
             Itens que entraram e saíram por ajuste (sem nota fiscal), por loja e período.
           </p>

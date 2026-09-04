@@ -15,7 +15,7 @@ export default async function NovaLojaPage() {
 
   return (
     <div className="max-w-lg">
-      <h1 className="mb-6 text-lg font-medium text-neutral-900">Nova loja</h1>
+      <h1 className="mb-6 text-lg font-medium text-brand-dark">Nova loja</h1>
       <LojaForm grupos={grupos} regioes={regioes} />
     </div>
   );

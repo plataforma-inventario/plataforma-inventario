@@ -44,7 +44,7 @@ export default async function InventariosPage({
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-medium text-neutral-900">Inventários</h1>
+          <h1 className="text-lg font-medium text-brand-dark">Inventários</h1>
           <p className="text-sm text-neutral-500">
             Todos os lançamentos fechados, cruzando todas as lojas.
           </p>
@@ -80,7 +80,7 @@ export default async function InventariosPage({
                   {l.dataFim.toLocaleDateString("pt-BR")}
                 </td>
                 <td className="px-4 py-2 text-neutral-700">
-                  <Link href={`/lojas/${l.lojaId}`} className="hover:underline">
+                  <Link href={`/lojas/${l.lojaId}`} className="hover:text-brand-dark hover:underline">
                     {l.pdv} — {l.nomeLoja}
                   </Link>
                 </td>

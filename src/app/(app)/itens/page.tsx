@@ -14,7 +14,7 @@ export default async function ItensPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-medium text-neutral-900">Itens problemáticos</h1>
+        <h1 className="text-lg font-medium text-brand-dark">Itens problemáticos</h1>
         <p className="text-sm text-neutral-500">
           Mesmo SKU cruzado em todos os módulos — ajuda a identificar item estruturalmente mal
           controlado (ex: sempre vira demonstrador e nunca é baixado certo) e não só divergência

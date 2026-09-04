@@ -88,12 +88,12 @@ export default async function LojaDetalhePage({
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-neutral-500">PDV {loja.pdv}</p>
-          <h1 className="text-lg font-medium text-neutral-900">{loja.nome}</h1>
+          <h1 className="text-lg font-medium text-brand-dark">{loja.nome}</h1>
         </div>
         {podeGerenciar && (
           <Link
             href={`/lojas/${loja.id}/novo-ciclo`}
-            className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800"
+            className="rounded-md bg-brand-dark px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark-hover"
           >
             + Novo lançamento
           </Link>

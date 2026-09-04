@@ -58,10 +58,10 @@ export default async function CicloPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href={`/lojas/${ciclo.loja.id}`} className="text-sm text-neutral-500 hover:underline">
+        <Link href={`/lojas/${ciclo.loja.id}`} className="text-sm text-neutral-500 hover:text-brand-dark hover:underline">
           ← {ciclo.loja.nome}
         </Link>
-        <h1 className="text-lg font-medium text-neutral-900">
+        <h1 className="text-lg font-medium text-brand-dark">
           Lançamento — {ciclo.dataInicio.toLocaleDateString("pt-BR")} até{" "}
           {ciclo.dataFim.toLocaleDateString("pt-BR")}
         </h1>
@@ -119,7 +119,7 @@ export default async function CicloPage({ params }: { params: Promise<{ id: stri
             <button
               type="submit"
               disabled={!podeFechar}
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-brand-dark px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               Fechar lançamento
             </button>

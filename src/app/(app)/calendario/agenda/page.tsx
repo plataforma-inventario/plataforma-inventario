@@ -43,7 +43,7 @@ export default async function AgendaPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-lg font-medium text-neutral-900">Agenda de visitas</h1>
+        <h1 className="text-lg font-medium text-brand-dark">Agenda de visitas</h1>
         <p className="text-sm text-neutral-500">
           Importe o print do Google Agenda como referência e digite o dia exato combinado com
           cada loja — isso passa a valer no Calendário no lugar do mês estimado pelo cronograma.
@@ -110,7 +110,7 @@ export default async function AgendaPage({
                   />
                 </a>
                 <form action={removerImagemAgenda.bind(null, img.id)}>
-                  <button type="submit" className="text-xs text-red-600 hover:underline">
+                  <button type="submit" className="text-xs text-red-600 hover:text-brand-dark hover:underline">
                     Remover
                   </button>
                 </form>

@@ -33,7 +33,7 @@ export default async function RequisicoesPage({
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-medium text-neutral-900">Requisições</h1>
+          <h1 className="text-lg font-medium text-brand-dark">Requisições</h1>
           <p className="text-sm text-neutral-500">
             Demonstradores, brindes, vencidos, premiações, perda/roubo e material auxiliar.
           </p>

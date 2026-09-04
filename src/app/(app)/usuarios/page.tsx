@@ -22,7 +22,7 @@ export default async function UsuariosPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="mb-4 text-lg font-medium text-neutral-900">
+        <h1 className="mb-4 text-lg font-medium text-brand-dark">
           Usuários ({usuarios.length})
         </h1>
         <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
@@ -46,8 +46,8 @@ export default async function UsuariosPage() {
                       <button
                         className={
                           u.ativo
-                            ? "text-emerald-700 hover:underline"
-                            : "text-neutral-400 hover:underline"
+                            ? "text-emerald-700 hover:text-brand-dark hover:underline"
+                            : "text-neutral-400 hover:text-brand-dark hover:underline"
                         }
                       >
                         {u.ativo ? "Ativo" : "Inativo"}

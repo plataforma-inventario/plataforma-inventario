@@ -29,7 +29,7 @@ export default async function RankingPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-medium text-neutral-900">Ranking entre lojas</h1>
+          <h1 className="text-lg font-medium text-brand-dark">Ranking entre lojas</h1>
           <p className="text-sm text-neutral-500">
             Divergência do lançamento fechado mais recente de cada loja, ordenado do pior para o
             melhor.
@@ -75,13 +75,13 @@ export default async function RankingPage() {
                 <tr key={l.lojaId} className={l.acimaDaMeta ? "bg-red-50" : undefined}>
                   <td className="px-4 py-2 text-neutral-400">{i + 1}</td>
                   <td className="px-4 py-2">
-                    <Link href={`/lojas/${l.lojaId}`} className="text-neutral-900 hover:underline">
+                    <Link href={`/lojas/${l.lojaId}`} className="text-neutral-900 hover:text-brand-dark hover:underline">
                       {l.pdv} — {l.nome}
                     </Link>
                   </td>
                   <td className="px-4 py-2 text-neutral-700">{l.regiaoNome ?? "—"}</td>
                   <td className="px-4 py-2 text-neutral-700">
-                    <Link href={`/ciclos/${l.cicloId}`} className="hover:underline">
+                    <Link href={`/ciclos/${l.cicloId}`} className="hover:text-brand-dark hover:underline">
                       {l.dataFim.toLocaleDateString("pt-BR")}
                     </Link>
                   </td>

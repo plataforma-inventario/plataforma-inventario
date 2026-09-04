@@ -88,7 +88,7 @@ export default async function DefeitosPage({
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-medium text-neutral-900">Defeitos</h1>
+          <h1 className="text-lg font-medium text-brand-dark">Defeitos</h1>
           <p className="text-sm text-neutral-500">
             Notas fiscais de devolução (defeito e falta de mercadoria) e status do reembolso.
           </p>
@@ -291,7 +291,7 @@ export default async function DefeitosPage({
                   href={`/defeitos/insucesso/${i.id}/foto`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 text-neutral-500 hover:underline"
+                  className="shrink-0 text-neutral-500 hover:text-brand-dark hover:underline"
                 >
                   ver foto
                 </a>

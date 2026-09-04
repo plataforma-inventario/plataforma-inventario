@@ -27,7 +27,7 @@ export default async function NovoCicloPage({
       <p className="text-sm text-neutral-500">
         PDV {loja.pdv} · {loja.nome}
       </p>
-      <h1 className="mb-6 text-lg font-medium text-neutral-900">Novo lançamento</h1>
+      <h1 className="mb-6 text-lg font-medium text-brand-dark">Novo lançamento</h1>
 
       {cicloAberto ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">

@@ -47,7 +47,7 @@ export default async function LogisticaReversaPage({
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-medium text-neutral-900">Logística reversa</h1>
+          <h1 className="text-lg font-medium text-brand-dark">Logística reversa</h1>
           <p className="text-sm text-neutral-500">Volume e valor enviado por loja e por mês.</p>
         </div>
         <a

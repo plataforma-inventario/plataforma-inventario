@@ -12,7 +12,7 @@ export default async function ImportarPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-medium text-neutral-900">Central de importação</h1>
+        <h1 className="text-lg font-medium text-brand-dark">Central de importação</h1>
         <p className="text-sm text-neutral-500">
           Solte os arquivos aqui conforme for lançando — cada um alimenta sozinho a aba certa
           (Lojas/lançamento, Defeitos, etc.).

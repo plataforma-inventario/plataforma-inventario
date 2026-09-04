@@ -11,7 +11,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-medium text-neutral-900">Visão geral</h1>
+      <h1 className="text-lg font-medium text-brand-dark">Visão geral</h1>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link
           href="/lojas"

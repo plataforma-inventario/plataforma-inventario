@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 
@@ -40,8 +41,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-base font-semibold text-neutral-900">
-              Plataforma de Inventário
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/logo-icon.png" alt="" width={28} height={28} priority />
+              <span className="text-base font-semibold text-brand-dark">Plataforma de Inventário</span>
             </Link>
             <div className="flex items-center gap-4">
               <span className="text-sm text-neutral-500">
@@ -63,7 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {itensNav
               .filter((i) => !i.oculto)
               .map((i) => (
-                <Link key={i.href} href={i.href} className="shrink-0 whitespace-nowrap hover:text-neutral-900">
+                <Link key={i.href} href={i.href} className="shrink-0 whitespace-nowrap hover:text-brand-dark">
                   {i.label}
                 </Link>
               ))}

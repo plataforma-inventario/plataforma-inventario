@@ -17,7 +17,7 @@ export default async function CalendarioPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-medium text-neutral-900">Calendário de visitas</h1>
+          <h1 className="text-lg font-medium text-brand-dark">Calendário de visitas</h1>
           <p className="text-sm text-neutral-500">
             Próximo mês esperado de inventário por loja (ou o dia exato, quando já combinado),
             considerando o ciclo e o subgrupo do calendário fixo de auditoria.
@@ -41,7 +41,7 @@ export default async function CalendarioPage() {
           <ul className="flex flex-col gap-1">
             {atrasadas.map((l) => (
               <li key={l.lojaId} className="text-sm text-red-700">
-                <Link href={`/lojas/${l.lojaId}`} className="hover:underline">
+                <Link href={`/lojas/${l.lojaId}`} className="hover:text-brand-dark hover:underline">
                   {l.pdv} — {l.nome}
                 </Link>{" "}
                 — esperado{" "}
@@ -69,7 +69,7 @@ export default async function CalendarioPage() {
             {lojas.map((l) => (
               <tr key={l.lojaId} className={l.atrasada ? "bg-red-50" : undefined}>
                 <td className="px-4 py-2 text-neutral-700">
-                  <Link href={`/lojas/${l.lojaId}`} className="hover:underline">
+                  <Link href={`/lojas/${l.lojaId}`} className="hover:text-brand-dark hover:underline">
                     {l.pdv} — {l.nome}
                   </Link>
                 </td>

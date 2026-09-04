@@ -25,7 +25,7 @@ export default async function CruzamentoPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-medium text-neutral-900">Divergências cruzadas</h1>
+        <h1 className="text-lg font-medium text-brand-dark">Divergências cruzadas</h1>
         <p className="text-sm text-neutral-500">
           Item faltando numa loja e sobrando em outra, no mesmo período, sem transferência ou
           ajuste que explique — considerando todas as lojas do sistema, não só da mesma região.
@@ -55,12 +55,12 @@ export default async function CruzamentoPage() {
                     {d.codigoProduto} — {d.descricaoProduto}
                   </td>
                   <td className="px-4 py-2 text-neutral-700">
-                    <Link href={`/lojas/${d.lojaFalta.id}`} className="hover:underline">
+                    <Link href={`/lojas/${d.lojaFalta.id}`} className="hover:text-brand-dark hover:underline">
                       {d.lojaFalta.pdv} — {d.lojaFalta.nome}
                     </Link>
                   </td>
                   <td className="px-4 py-2 text-neutral-700">
-                    <Link href={`/lojas/${d.lojaSobra.id}`} className="hover:underline">
+                    <Link href={`/lojas/${d.lojaSobra.id}`} className="hover:text-brand-dark hover:underline">
                       {d.lojaSobra.pdv} — {d.lojaSobra.nome}
                     </Link>
                   </td>

@@ -34,7 +34,7 @@ export default async function TransferenciasPage({
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-medium text-neutral-900">Transferências</h1>
+          <h1 className="text-lg font-medium text-brand-dark">Transferências</h1>
           <p className="text-sm text-neutral-500">
             Documentos fiscais de saída e entrada entre lojas do mesmo CNPJ.
           </p>
