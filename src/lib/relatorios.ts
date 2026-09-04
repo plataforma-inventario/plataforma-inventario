@@ -143,6 +143,33 @@ export async function getRequisicoes(user: Usuario, filtros: FiltrosRelatorio = 
   return { itens, custoTotal };
 }
 
+/**
+ * Pedido pelo usuário em 2026-09-04: facilitar pra gerente puxar qual item
+ * cada funcionária escolheu de premiação - o nome/CPF dela sempre vem na
+ * observação da requisição, então essa tela só filtra por motivo
+ * "premiação" e mostra a observação junto. Exceção ao item 6 (mostra PDV
+ * aqui, diferente do resto de Requisições), combinada com o usuário no
+ * Comparativo - aqui faz sentido pela mesma razão: é a gerente da própria
+ * loja que precisa consultar, não um relatório consolidado externo.
+ */
+export async function getPremiacoes(user: Usuario, filtros: FiltrosRelatorio = {}) {
+  const ids = await lojaIdsVisiveis(user, filtros.tipoLoja);
+  const itens = await prisma.itemRequisicao.findMany({
+    where: {
+      dataRequisicao: await filtroPeriodo(filtros),
+      motivoCodigo: { contains: "PREMI", mode: "insensitive" },
+      arquivo: {
+        ciclo: { lojaId: filtros.lojaId ? filtros.lojaId : { in: ids } },
+      },
+    },
+    include: { arquivo: { include: { ciclo: { include: { loja: true } } } } },
+    orderBy: { dataRequisicao: "desc" },
+    take: 300,
+  });
+
+  return { itens };
+}
+
 export type LinhaInventarioRelatorio = {
   cicloId: string;
   lojaId: string;

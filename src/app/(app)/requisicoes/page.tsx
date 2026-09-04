@@ -44,6 +44,12 @@ export default async function RequisicoesPage({
         </div>
         <div className="flex shrink-0 gap-2">
           <a
+            href="/requisicoes/premiacoes"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+          >
+            Premiações
+          </a>
+          <a
             href="/requisicoes/comparativo"
             className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
           >
