@@ -4,7 +4,8 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAuditor } from "@/lib/authz";
-import { CategoriaArquivo, StatusCiclo } from "@/generated/prisma/client";
+import { CategoriaArquivo, StatusCiclo, StatusParsing } from "@/generated/prisma/client";
+import { processarEArmazenar } from "@/lib/parsers/processar";
 
 const TODAS_CATEGORIAS = Object.values(CategoriaArquivo);
 
@@ -32,17 +33,26 @@ export async function uploadArquivo(
   }
 
   try {
-    await prisma.arquivoImportado.create({
-      data: {
-        cicloId,
-        categoria,
-        nomeArquivo: file.name,
-        tipoMime: file.type || "application/octet-stream",
-        hashConteudo,
-        tamanhoBytes: file.size,
-        conteudo: buffer,
-        uploadedByUserId: session.user.id,
-      },
+    await prisma.$transaction(async (tx) => {
+      const arquivo = await tx.arquivoImportado.create({
+        data: {
+          cicloId,
+          categoria,
+          nomeArquivo: file.name,
+          tipoMime: file.type || "application/octet-stream",
+          hashConteudo,
+          tamanhoBytes: file.size,
+          conteudo: buffer,
+          uploadedByUserId: session.user.id,
+        },
+      });
+
+      const { status, resumo, avisos } = await processarEArmazenar(tx, arquivo.id, categoria, buffer);
+
+      await tx.arquivoImportado.update({
+        where: { id: arquivo.id },
+        data: { statusParsing: status, resumoParsing: resumo, avisosParsing: avisos },
+      });
     });
   } catch {
     return { erro: "Já existe um arquivo enviado para esta categoria neste lançamento." };
@@ -66,6 +76,15 @@ export async function fecharCiclo(cicloId: string) {
   const faltando = TODAS_CATEGORIAS.filter((c) => !categoriasEnviadas.has(c));
   if (faltando.length > 0) {
     throw new Error(`Faltam categorias: ${faltando.join(", ")}`);
+  }
+
+  const comErro = arquivos.filter((a) => a.statusParsing === StatusParsing.ERRO);
+  if (comErro.length > 0) {
+    throw new Error(
+      `Arquivo(s) com erro de leitura precisam ser reenviados antes de fechar: ${comErro
+        .map((a) => a.nomeArquivo)
+        .join(", ")}`
+    );
   }
 
   await prisma.ciclo.update({

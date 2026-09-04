@@ -47,7 +47,9 @@ export default async function CicloPage({ params }: { params: Promise<{ id: stri
 
   const podeGerenciar = session.user.perfil === "AUDITOR";
   const arquivosPorCategoria = new Map(ciclo.arquivos.map((a) => [a.categoria, a]));
-  const todosCompletos = CATEGORIAS.every((c) => arquivosPorCategoria.has(c.categoria));
+  const todosEnviados = CATEGORIAS.every((c) => arquivosPorCategoria.has(c.categoria));
+  const algumComErro = ciclo.arquivos.some((a) => a.statusParsing === "ERRO");
+  const podeFechar = todosEnviados && !algumComErro;
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,12 +91,18 @@ export default async function CicloPage({ params }: { params: Promise<{ id: stri
             podeGerenciar={podeGerenciar && ciclo.status === "ABERTO"}
             arquivo={
               arquivosPorCategoria.has(c.categoria)
-                ? {
-                    id: arquivosPorCategoria.get(c.categoria)!.id,
-                    nomeArquivo: arquivosPorCategoria.get(c.categoria)!.nomeArquivo,
-                    tamanhoBytes: arquivosPorCategoria.get(c.categoria)!.tamanhoBytes,
-                    createdAt: arquivosPorCategoria.get(c.categoria)!.createdAt.toISOString(),
-                  }
+                ? (() => {
+                    const a = arquivosPorCategoria.get(c.categoria)!;
+                    return {
+                      id: a.id,
+                      nomeArquivo: a.nomeArquivo,
+                      tamanhoBytes: a.tamanhoBytes,
+                      createdAt: a.createdAt.toISOString(),
+                      statusParsing: a.statusParsing,
+                      resumoParsing: a.resumoParsing,
+                      avisosParsing: a.avisosParsing,
+                    };
+                  })()
                 : null
             }
           />
@@ -106,15 +114,20 @@ export default async function CicloPage({ params }: { params: Promise<{ id: stri
           <form action={fecharCiclo.bind(null, ciclo.id)}>
             <button
               type="submit"
-              disabled={!todosCompletos}
+              disabled={!podeFechar}
               className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Fechar lançamento
             </button>
           </form>
-          {!todosCompletos && (
+          {!todosEnviados && (
             <p className="mt-2 text-sm text-neutral-400">
               Envie os 6 arquivos acima para poder fechar o lançamento.
+            </p>
+          )}
+          {todosEnviados && algumComErro && (
+            <p className="mt-2 text-sm text-red-600">
+              Corrija ou reenvie os arquivos com erro de leitura antes de fechar.
             </p>
           )}
         </div>

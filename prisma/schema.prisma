@@ -73,6 +73,22 @@ enum CategoriaArquivo {
   FATURAMENTO
 }
 
+// Resultado do parsing de um ArquivoImportado (item 10: "sugerir/validar um
+// padrao de colunas"). AVISO = leu o arquivo mas achou algo estranho (linha
+// que nao bateu o formato esperado, motivo de requisicao desconhecido etc) -
+// nao impede o lancamento, mas fica visivel na tela de conferencia.
+enum StatusParsing {
+  PENDENTE
+  OK
+  AVISO
+  ERRO
+}
+
+enum DirecaoMovimento {
+  ENTRADA
+  SAIDA
+}
+
 // ---------------------------------------------------------------------------
 // Hierarquia organizacional: Grupo (CNPJ) -> Regiao -> Loja (PDV)
 // Regiao e independente de Grupo (uma regiao agrupa lojas de grupos
@@ -211,8 +227,135 @@ model ArquivoImportado {
   uploadedByUserId String
   uploadedBy       User   @relation(fields: [uploadedByUserId], references: [id])
 
+  // Preenchido pelo parser logo apos o upload (item 10 / etapa de parsing).
+  statusParsing StatusParsing @default(PENDENTE)
+  resumoParsing String? // ex: "128 linhas, 2 avisos"
+  avisosParsing String[]      @default([])
+
   createdAt DateTime @default(now())
+
+  itensInventario    ItemInventario[]
+  itensTransferencia ItemTransferencia[]
+  itensAjuste        ItemAjuste[]
+  itensRequisicao    ItemRequisicao[]
+  faturamento        Faturamento?
 
   @@unique([cicloId, categoria]) // um arquivo por categoria dentro do mesmo ciclo
   @@unique([hashConteudo]) // mesmo arquivo (byte a byte) nunca pode ser reimportado, em nenhum ciclo
+}
+
+// ---------------------------------------------------------------------------
+// Dados estruturados extraidos de cada arquivo (etapa de parsing). Cada
+// modelo espelha o formato real dos relatorios que a loja exporta do
+// sistema (nomes de campo em portugues combinando com o relatorio de
+// origem, para facilitar conferencia cruzada com o arquivo original).
+// ---------------------------------------------------------------------------
+
+model ItemInventario {
+  id        String           @id @default(cuid())
+  arquivoId String
+  arquivo   ArquivoImportado @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+
+  codigoProduto     String
+  descricaoProduto  String
+  unidade           String
+  quantidadeSistema Decimal @db.Decimal(14, 3) // coluna "Congelado" do relatorio: saldo antes da contagem
+  quantidadeContada Decimal @db.Decimal(14, 3) // coluna "Digitado"
+  ajuste            Decimal @db.Decimal(14, 3) // diferenca (contada - sistema)
+  custoUnitario     Decimal @db.Decimal(14, 2)
+  valorAjuste       Decimal @db.Decimal(14, 2)
+  valorEstoque      Decimal @db.Decimal(14, 2)
+
+  lojaOrigemTexto String // texto cru da coluna "Loja" do relatorio (ex: "11101 - PRUDENSHOPPING")
+  local           String?
+  tipoArquivo     TipoInventario // valor da coluna "Tipo" do proprio relatorio (conferir contra o Ciclo)
+
+  createdAt DateTime @default(now())
+
+  @@index([arquivoId])
+  @@index([codigoProduto])
+}
+
+model ItemTransferencia {
+  id        String           @id @default(cuid())
+  arquivoId String
+  arquivo   ArquivoImportado @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+
+  direcao DirecaoMovimento // ENTRADA (relatorio de compra) ou SAIDA (relatorio de venda)
+
+  numeroDocumento   String
+  dataEmissao       DateTime
+  contraparteCodigo String // "Codigo do Fornecedor" (entrada) ou identificador do cliente (saida) - geralmente a outra loja
+  contraparteNome   String
+
+  codigoProduto    String
+  descricaoProduto String
+  unidade          String
+  quantidade       Decimal @db.Decimal(14, 3)
+  valorUnitario    Decimal @db.Decimal(14, 2)
+  valorTotalItem   Decimal @db.Decimal(14, 2)
+  cfop             String
+
+  createdAt DateTime @default(now())
+
+  @@index([arquivoId])
+  @@index([codigoProduto])
+}
+
+model ItemAjuste {
+  id        String           @id @default(cuid())
+  arquivoId String
+  arquivo   ArquivoImportado @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+
+  direcao DirecaoMovimento // derivado da coluna "Tipo Ajuste" (1 = entrada, 2 = saida) do PDF
+
+  dataMovimento    DateTime
+  codigoProduto    String
+  descricaoProduto String
+  quantidade       Decimal  @db.Decimal(14, 3) // sempre positiva - a direcao ja diz o sentido
+  custoUnitario    Decimal  @db.Decimal(14, 2)
+  valorTotalCusto  Decimal  @db.Decimal(14, 2)
+  funcionario      String?
+  observacao       String? // texto livre do PDF - muitas vezes documenta transferencia entre lojas (util pro item 5.1)
+
+  createdAt DateTime @default(now())
+
+  @@index([arquivoId])
+  @@index([codigoProduto])
+}
+
+model ItemRequisicao {
+  id        String           @id @default(cuid())
+  arquivoId String
+  arquivo   ArquivoImportado @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+
+  numero             String
+  setor              String?
+  solicitante        String?
+  codigoProduto      String
+  descricaoProduto   String
+  unidade            String
+  quantidadeAtendida Decimal  @db.Decimal(14, 3)
+  custoTotal         Decimal  @db.Decimal(14, 2)
+  dataRequisicao     DateTime
+  motivoCodigo       String // texto cru da coluna "Motivo" (ex: "1 - DEMONSTRADORES")
+  observacao         String?
+
+  createdAt DateTime @default(now())
+
+  @@index([arquivoId])
+  @@index([codigoProduto])
+}
+
+// Uma linha por ArquivoImportado (relatorio de faturamento ja vem
+// pre-resumido por loja/periodo, sem detalhe por item).
+model Faturamento {
+  id        String           @id @default(cuid())
+  arquivoId String           @unique
+  arquivo   ArquivoImportado @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+
+  receitaLiquida Decimal @db.Decimal(14, 2)
+  periodoTexto   String // ex: "AGOSTO", conforme o relatorio de origem
+
+  createdAt DateTime @default(now())
 }
