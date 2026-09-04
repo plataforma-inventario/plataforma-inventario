@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { getRequisicoes } from "@/lib/relatorios";
+import { getRequisicoes, getCiclosPorLoja } from "@/lib/relatorios";
 import { getLojasVisiveis } from "@/lib/access";
 import { FiltroRelatorio, type ValoresFiltro } from "../filtro-relatorio";
 import type { TipoLoja } from "@/generated/prisma/client";
@@ -15,14 +15,16 @@ export default async function RequisicoesPage({
   if (!session) return null;
   const valores = await searchParams;
 
-  const [{ itens, custoTotal }, lojas] = await Promise.all([
+  const [{ itens, custoTotal }, lojas, ciclosPorLoja] = await Promise.all([
     getRequisicoes(session.user, {
       lojaId: valores.loja,
       mes: valores.mes ? Number(valores.mes) : undefined,
       ano: valores.ano ? Number(valores.ano) : undefined,
+      cicloId: valores.cicloId,
       tipoLoja: valores.tipo as TipoLoja | undefined,
     }),
     getLojasVisiveis(session.user),
+    getCiclosPorLoja(session.user),
   ]);
 
   const query = new URLSearchParams(
@@ -46,7 +48,7 @@ export default async function RequisicoesPage({
         </a>
       </div>
 
-      <FiltroRelatorio lojas={lojas} valores={valores} />
+      <FiltroRelatorio lojas={lojas} valores={valores} ciclosPorLoja={ciclosPorLoja} />
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4 sm:w-64">
         <p className="text-sm text-neutral-500">Custo total</p>

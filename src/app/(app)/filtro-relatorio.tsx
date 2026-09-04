@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 
 type LojaOpcao = { id: string; pdv: number; nome: string };
+export type CicloOpcao = { id: string; lojaId: string; dataInicio: string; dataFim: string };
 
 export type ValoresFiltro = {
   loja?: string;
@@ -11,6 +12,7 @@ export type ValoresFiltro = {
   tipo?: string;
   direcao?: string;
   tipoInventario?: string;
+  cicloId?: string;
 };
 
 const MESES = [
@@ -18,28 +20,41 @@ const MESES = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
+function formatoCurto(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR");
+}
+
 export function FiltroRelatorio({
   lojas,
   valores,
   mostrarDirecao,
   mostrarTipoInventario,
+  ciclosPorLoja,
 }: {
   lojas: LojaOpcao[];
   valores: ValoresFiltro;
   mostrarDirecao?: boolean;
   mostrarTipoInventario?: boolean;
+  /** Quando presente, mostra o select "Período (ciclo)" — lista os ciclos da loja selecionada. */
+  ciclosPorLoja?: CicloOpcao[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const atualizar = (campo: keyof ValoresFiltro, valor: string) => {
+  const irPara = (novosValores: ValoresFiltro) => {
     const params = new URLSearchParams();
-    const novosValores = { ...valores, [campo]: valor };
     for (const [chave, v] of Object.entries(novosValores)) {
       if (v) params.set(chave, v);
     }
     router.push(params.size ? `${pathname}?${params.toString()}` : pathname);
   };
+
+  const atualizar = (campo: keyof ValoresFiltro, valor: string) => {
+    irPara({ ...valores, [campo]: valor });
+  };
+
+  const ciclosDaLoja = (ciclosPorLoja ?? []).filter((c) => c.lojaId === valores.loja);
 
   const anoAtual = new Date().getFullYear();
   const anos = [anoAtual, anoAtual - 1];
@@ -48,7 +63,7 @@ export function FiltroRelatorio({
     <div className="flex flex-wrap gap-2">
       <select
         value={valores.loja ?? ""}
-        onChange={(e) => atualizar("loja", e.target.value)}
+        onChange={(e) => irPara({ ...valores, loja: e.target.value, cicloId: "" })}
         className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
       >
         <option value="">Todas as lojas</option>
@@ -58,6 +73,25 @@ export function FiltroRelatorio({
           </option>
         ))}
       </select>
+
+      {ciclosPorLoja && (
+        <select
+          value={valores.cicloId ?? ""}
+          disabled={!valores.loja}
+          onChange={(e) => irPara({ ...valores, cicloId: e.target.value, mes: "", ano: "" })}
+          title={!valores.loja ? "Selecione uma loja primeiro" : undefined}
+          className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-50 disabled:text-neutral-400"
+        >
+          <option value="">
+            {valores.loja ? "Qualquer período" : "Selecione uma loja"}
+          </option>
+          {ciclosDaLoja.map((c) => (
+            <option key={c.id} value={c.id}>
+              {formatoCurto(c.dataInicio)} a {formatoCurto(c.dataFim)}
+            </option>
+          ))}
+        </select>
+      )}
 
       <select
         value={valores.tipo ?? ""}
@@ -72,7 +106,7 @@ export function FiltroRelatorio({
 
       <select
         value={valores.mes ?? ""}
-        onChange={(e) => atualizar("mes", e.target.value)}
+        onChange={(e) => irPara({ ...valores, mes: e.target.value, cicloId: "" })}
         className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
       >
         <option value="">Todos os meses</option>
@@ -85,7 +119,7 @@ export function FiltroRelatorio({
 
       <select
         value={valores.ano ?? ""}
-        onChange={(e) => atualizar("ano", e.target.value)}
+        onChange={(e) => irPara({ ...valores, ano: e.target.value, cicloId: "" })}
         className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
       >
         <option value="">Todos os anos</option>

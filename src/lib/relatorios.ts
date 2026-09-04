@@ -9,6 +9,10 @@ export type FiltrosRelatorio = {
   lojaId?: string;
   mes?: number; // 1-12
   ano?: number;
+  // Filtra pelo período exato de um ciclo (dataInicio a dataFim) em vez de
+  // mês/ano - útil pra ver "o que aconteceu entre um inventário e outro",
+  // já que o período de um ciclo raramente bate com um mês fechado.
+  cicloId?: string;
   tipoLoja?: TipoLoja;
   direcao?: DirecaoMovimento;
   tipoInventario?: TipoInventario;
@@ -29,12 +33,39 @@ function filtroData(mes?: number, ano?: number) {
   return { gte: inicio, lt: fim };
 }
 
+async function filtroPeriodo(filtros: FiltrosRelatorio) {
+  if (filtros.cicloId) {
+    const ciclo = await prisma.ciclo.findUnique({
+      where: { id: filtros.cicloId },
+      select: { dataInicio: true, dataFim: true },
+    });
+    if (ciclo) return { gte: ciclo.dataInicio, lte: ciclo.dataFim };
+  }
+  return filtroData(filtros.mes, filtros.ano);
+}
+
+/** Ciclos de todas as lojas visíveis, pro select "Período (ciclo)" do filtro. */
+export async function getCiclosPorLoja(user: Usuario) {
+  const ids = await lojaIdsVisiveis(user);
+  const ciclos = await prisma.ciclo.findMany({
+    where: { lojaId: { in: ids } },
+    select: { id: true, lojaId: true, dataInicio: true, dataFim: true },
+    orderBy: { dataInicio: "desc" },
+  });
+  return ciclos.map((c) => ({
+    id: c.id,
+    lojaId: c.lojaId,
+    dataInicio: c.dataInicio.toISOString(),
+    dataFim: c.dataFim.toISOString(),
+  }));
+}
+
 export async function getAjustes(user: Usuario, filtros: FiltrosRelatorio = {}) {
   const ids = await lojaIdsVisiveis(user, filtros.tipoLoja);
   const itens = await prisma.itemAjuste.findMany({
     where: {
       direcao: filtros.direcao,
-      dataMovimento: filtroData(filtros.mes, filtros.ano),
+      dataMovimento: await filtroPeriodo(filtros),
       arquivo: {
         ciclo: { lojaId: filtros.lojaId ? filtros.lojaId : { in: ids } },
       },
@@ -59,7 +90,7 @@ export async function getTransferencias(user: Usuario, filtros: FiltrosRelatorio
   const itens = await prisma.itemTransferencia.findMany({
     where: {
       direcao: filtros.direcao,
-      dataEmissao: filtroData(filtros.mes, filtros.ano),
+      dataEmissao: await filtroPeriodo(filtros),
       arquivo: {
         ciclo: { lojaId: filtros.lojaId ? filtros.lojaId : { in: ids } },
       },
@@ -85,7 +116,7 @@ export async function getRequisicoes(user: Usuario, filtros: FiltrosRelatorio = 
   const ids = await lojaIdsVisiveis(user, filtros.tipoLoja);
   const itens = await prisma.itemRequisicao.findMany({
     where: {
-      dataRequisicao: filtroData(filtros.mes, filtros.ano),
+      dataRequisicao: await filtroPeriodo(filtros),
       arquivo: {
         ciclo: { lojaId: filtros.lojaId ? filtros.lojaId : { in: ids } },
       },

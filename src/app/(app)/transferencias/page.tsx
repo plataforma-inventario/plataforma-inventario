@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { getTransferencias } from "@/lib/relatorios";
+import { getTransferencias, getCiclosPorLoja } from "@/lib/relatorios";
 import { getLojasVisiveis } from "@/lib/access";
 import { FiltroRelatorio, type ValoresFiltro } from "../filtro-relatorio";
 import type { DirecaoMovimento, TipoLoja } from "@/generated/prisma/client";
@@ -15,15 +15,17 @@ export default async function TransferenciasPage({
   if (!session) return null;
   const valores = await searchParams;
 
-  const [{ itens, totalEntrada, totalSaida }, lojas] = await Promise.all([
+  const [{ itens, totalEntrada, totalSaida }, lojas, ciclosPorLoja] = await Promise.all([
     getTransferencias(session.user, {
       lojaId: valores.loja,
       mes: valores.mes ? Number(valores.mes) : undefined,
       ano: valores.ano ? Number(valores.ano) : undefined,
+      cicloId: valores.cicloId,
       tipoLoja: valores.tipo as TipoLoja | undefined,
       direcao: valores.direcao as DirecaoMovimento | undefined,
     }),
     getLojasVisiveis(session.user),
+    getCiclosPorLoja(session.user),
   ]);
 
   const query = new URLSearchParams(
@@ -85,7 +87,7 @@ export default async function TransferenciasPage({
         </a>
       </div>
 
-      <FiltroRelatorio lojas={lojas} valores={valores} mostrarDirecao />
+      <FiltroRelatorio lojas={lojas} valores={valores} mostrarDirecao ciclosPorLoja={ciclosPorLoja} />
 
       <div className="grid grid-cols-2 gap-3 sm:w-96">
         <div className="rounded-lg border border-neutral-200 bg-white p-4">

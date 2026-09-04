@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     lojaId: url.searchParams.get("loja") ?? undefined,
     mes: url.searchParams.get("mes") ? Number(url.searchParams.get("mes")) : undefined,
     ano: url.searchParams.get("ano") ? Number(url.searchParams.get("ano")) : undefined,
+    cicloId: url.searchParams.get("cicloId") ?? undefined,
     tipoLoja: (url.searchParams.get("tipo") as TipoLoja) ?? undefined,
     direcao: (url.searchParams.get("direcao") as DirecaoMovimento) ?? undefined,
   });
