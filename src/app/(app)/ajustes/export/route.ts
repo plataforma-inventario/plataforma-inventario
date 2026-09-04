@@ -13,6 +13,12 @@ export async function GET(request: Request) {
     mes: url.searchParams.get("mes") ? Number(url.searchParams.get("mes")) : undefined,
     ano: url.searchParams.get("ano") ? Number(url.searchParams.get("ano")) : undefined,
     cicloId: url.searchParams.get("cicloId") ?? undefined,
+    dataInicio: url.searchParams.get("dataInicio")
+      ? new Date(`${url.searchParams.get("dataInicio")}T00:00:00`)
+      : undefined,
+    dataFim: url.searchParams.get("dataFim")
+      ? new Date(`${url.searchParams.get("dataFim")}T00:00:00`)
+      : undefined,
     tipoLoja: (url.searchParams.get("tipo") as TipoLoja) ?? undefined,
     direcao: (url.searchParams.get("direcao") as DirecaoMovimento) ?? undefined,
   });

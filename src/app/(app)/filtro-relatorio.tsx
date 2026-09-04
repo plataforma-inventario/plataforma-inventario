@@ -13,6 +13,8 @@ export type ValoresFiltro = {
   direcao?: string;
   tipoInventario?: string;
   cicloId?: string;
+  dataInicio?: string;
+  dataFim?: string;
 };
 
 const MESES = [
@@ -78,7 +80,9 @@ export function FiltroRelatorio({
         <select
           value={valores.cicloId ?? ""}
           disabled={!valores.loja}
-          onChange={(e) => irPara({ ...valores, cicloId: e.target.value, mes: "", ano: "" })}
+          onChange={(e) =>
+            irPara({ ...valores, cicloId: e.target.value, mes: "", ano: "", dataInicio: "", dataFim: "" })
+          }
           title={!valores.loja ? "Selecione uma loja primeiro" : undefined}
           className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-50 disabled:text-neutral-400"
         >
@@ -106,7 +110,9 @@ export function FiltroRelatorio({
 
       <select
         value={valores.mes ?? ""}
-        onChange={(e) => irPara({ ...valores, mes: e.target.value, cicloId: "" })}
+        onChange={(e) =>
+          irPara({ ...valores, mes: e.target.value, cicloId: "", dataInicio: "", dataFim: "" })
+        }
         className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
       >
         <option value="">Todos os meses</option>
@@ -119,7 +125,9 @@ export function FiltroRelatorio({
 
       <select
         value={valores.ano ?? ""}
-        onChange={(e) => irPara({ ...valores, ano: e.target.value, cicloId: "" })}
+        onChange={(e) =>
+          irPara({ ...valores, ano: e.target.value, cicloId: "", dataInicio: "", dataFim: "" })
+        }
         className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
       >
         <option value="">Todos os anos</option>
@@ -129,6 +137,33 @@ export function FiltroRelatorio({
           </option>
         ))}
       </select>
+
+      <div className="flex items-center gap-1 rounded-md border border-neutral-300 px-2 py-1">
+        <label htmlFor="filtro-data-inicio" className="text-xs text-neutral-500">
+          De
+        </label>
+        <input
+          id="filtro-data-inicio"
+          type="date"
+          value={valores.dataInicio ?? ""}
+          onChange={(e) =>
+            irPara({ ...valores, dataInicio: e.target.value, mes: "", ano: "", cicloId: "" })
+          }
+          className="text-sm outline-none"
+        />
+        <label htmlFor="filtro-data-fim" className="text-xs text-neutral-500">
+          até
+        </label>
+        <input
+          id="filtro-data-fim"
+          type="date"
+          value={valores.dataFim ?? ""}
+          onChange={(e) =>
+            irPara({ ...valores, dataFim: e.target.value, mes: "", ano: "", cicloId: "" })
+          }
+          className="text-sm outline-none"
+        />
+      </div>
 
       {mostrarDirecao && (
         <select

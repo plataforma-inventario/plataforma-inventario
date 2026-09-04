@@ -12,6 +12,12 @@ export async function GET(request: Request) {
     lojaId: url.searchParams.get("loja") ?? undefined,
     mes: url.searchParams.get("mes") ? Number(url.searchParams.get("mes")) : undefined,
     ano: url.searchParams.get("ano") ? Number(url.searchParams.get("ano")) : undefined,
+    dataInicio: url.searchParams.get("dataInicio")
+      ? new Date(`${url.searchParams.get("dataInicio")}T00:00:00`)
+      : undefined,
+    dataFim: url.searchParams.get("dataFim")
+      ? new Date(`${url.searchParams.get("dataFim")}T00:00:00`)
+      : undefined,
     tipoLoja: (url.searchParams.get("tipo") as TipoLoja) ?? undefined,
     tipoInventario: (url.searchParams.get("tipoInventario") as TipoInventario) ?? undefined,
   });

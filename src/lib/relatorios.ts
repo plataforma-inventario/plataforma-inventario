@@ -13,6 +13,10 @@ export type FiltrosRelatorio = {
   // mês/ano - útil pra ver "o que aconteceu entre um inventário e outro",
   // já que o período de um ciclo raramente bate com um mês fechado.
   cicloId?: string;
+  // Intervalo de datas livre (De/Até), pra períodos que não batem nem com
+  // mês/ano nem com um ciclo específico (ex: "janeiro a outubro").
+  dataInicio?: Date;
+  dataFim?: Date;
   tipoLoja?: TipoLoja;
   direcao?: DirecaoMovimento;
   tipoInventario?: TipoInventario;
@@ -40,6 +44,14 @@ async function filtroPeriodo(filtros: FiltrosRelatorio) {
       select: { dataInicio: true, dataFim: true },
     });
     if (ciclo) return { gte: ciclo.dataInicio, lte: ciclo.dataFim };
+  }
+  if (filtros.dataInicio || filtros.dataFim) {
+    return {
+      ...(filtros.dataInicio ? { gte: filtros.dataInicio } : {}),
+      ...(filtros.dataFim
+        ? { lte: new Date(filtros.dataFim.getFullYear(), filtros.dataFim.getMonth(), filtros.dataFim.getDate(), 23, 59, 59) }
+        : {}),
+    };
   }
   return filtroData(filtros.mes, filtros.ano);
 }
@@ -158,7 +170,7 @@ export async function getInventarios(
       status: "FECHADO",
       lojaId: filtros.lojaId ? filtros.lojaId : { in: ids },
       tipoInventario: filtros.tipoInventario,
-      dataFim: filtroData(filtros.mes, filtros.ano),
+      dataFim: await filtroPeriodo(filtros),
     },
     include: { loja: { include: { regiao: true } } },
     orderBy: { dataFim: "desc" },

@@ -21,6 +21,8 @@ export default async function RequisicoesPage({
       mes: valores.mes ? Number(valores.mes) : undefined,
       ano: valores.ano ? Number(valores.ano) : undefined,
       cicloId: valores.cicloId,
+      dataInicio: valores.dataInicio ? new Date(`${valores.dataInicio}T00:00:00`) : undefined,
+      dataFim: valores.dataFim ? new Date(`${valores.dataFim}T00:00:00`) : undefined,
       tipoLoja: valores.tipo as TipoLoja | undefined,
     }),
     getLojasVisiveis(session.user),
