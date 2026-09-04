@@ -59,3 +59,39 @@ export async function calcularDivergencia(cicloId: string): Promise<ResultadoDiv
     },
   };
 }
+
+export type PontoHistoricoDivergencia = {
+  cicloId: string;
+  dataFim: Date;
+  tipoInventario: "CICLICO" | "COMPLETO";
+  divergenciaValor: number;
+  percentualSobreEstoque: number | null;
+};
+
+/**
+ * Item 2.0: histórico de inventários da loja com evolução de divergência,
+ * pra gráfico e pra achar o melhor/pior ciclo. Só considera ciclos
+ * FECHADOS (com inventário já lido) e ignora os que não tiveram nenhum
+ * item de inventário reconhecido (arquivo com erro, por exemplo).
+ */
+export async function getHistoricoDivergencia(lojaId: string): Promise<PontoHistoricoDivergencia[]> {
+  const ciclos = await prisma.ciclo.findMany({
+    where: { lojaId, status: "FECHADO" },
+    orderBy: { dataFim: "asc" },
+    select: { id: true, dataFim: true, tipoInventario: true },
+  });
+
+  const pontos: PontoHistoricoDivergencia[] = [];
+  for (const ciclo of ciclos) {
+    const d = await calcularDivergencia(ciclo.id);
+    if (d.totalItens === 0) continue;
+    pontos.push({
+      cicloId: ciclo.id,
+      dataFim: ciclo.dataFim,
+      tipoInventario: ciclo.tipoInventario,
+      divergenciaValor: d.divergenciaValor,
+      percentualSobreEstoque: d.percentualSobreEstoque,
+    });
+  }
+  return pontos;
+}

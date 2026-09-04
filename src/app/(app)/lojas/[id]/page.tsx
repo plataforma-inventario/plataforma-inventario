@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { vincularGerente, desvincularGerente } from "../actions";
 import { LojaEditForm } from "./loja-edit-form";
 import { MetaDivergenciaForm } from "./meta-divergencia-form";
+import { HistoricoDivergencia } from "./historico-divergencia";
+import { getHistoricoDivergencia } from "@/lib/divergencia";
 
 const PERFIL_GERENTE_POR_TIPO = {
   VAREJO: "GERENTE_VAREJO",
@@ -68,6 +70,8 @@ export default async function LojaDetalhePage({
     orderBy: { dataFim: "desc" },
     take: 10,
   });
+
+  const historicoDivergencia = await getHistoricoDivergencia(loja.id);
 
   const podeVerHistorico = session.user.perfil === "AUDITOR" || session.user.perfil === "DIRETORIA";
   const historico = podeVerHistorico
@@ -222,9 +226,13 @@ export default async function LojaDetalhePage({
             ))}
           </ul>
         )}
-        <p className="mt-3 text-sm text-neutral-400">
-          Gráfico de evolução de divergência chega junto com o módulo de Inventários.
-        </p>
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-sm font-medium text-neutral-500">
+          Evolução de divergência do inventário
+        </h2>
+        <HistoricoDivergencia pontos={historicoDivergencia} />
       </div>
 
       {podeVerHistorico && (
