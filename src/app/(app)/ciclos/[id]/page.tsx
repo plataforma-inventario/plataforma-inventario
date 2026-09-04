@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { CategoriaArquivo } from "@/generated/prisma/client";
 import { UploadSlot } from "./upload-slot";
 import { fecharCiclo } from "./actions";
+import { calcularDivergencia } from "@/lib/divergencia";
+
+const formatoBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const formatoPct = (v: number) => `${v.toFixed(2).replace(".", ",")}%`;
 
 const CATEGORIAS: { categoria: CategoriaArquivo; label: string; formato: string }[] = [
   { categoria: "INVENTARIO", label: "Resultado do inventário", formato: "CSV" },
@@ -133,12 +137,75 @@ export default async function CicloPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      {ciclo.status === "FECHADO" && (
-        <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-sm text-neutral-400">
-          Lançamento fechado. O cruzamento automático de divergências e o cálculo de
-          divergência do inventário chegam com o módulo de Inventários (próxima etapa).
+      {ciclo.status === "FECHADO" && <DivergenciaResumo cicloId={ciclo.id} />}
+    </div>
+  );
+}
+
+async function DivergenciaResumo({ cicloId }: { cicloId: string }) {
+  const d = await calcularDivergencia(cicloId);
+
+  if (d.totalItens === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-sm text-neutral-400">
+        Não foi possível calcular a divergência — nenhum item de inventário foi lido deste
+        lançamento.
+      </div>
+    );
+  }
+
+  const sinal = d.divergenciaValor >= 0 ? "sobra" : "falta";
+  const corValor = d.divergenciaValor >= 0 ? "text-emerald-700" : "text-red-600";
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h2 className="text-sm font-medium text-neutral-500">Divergência do inventário</h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="text-sm text-neutral-500">Divergência total</p>
+          <p className={`text-xl font-semibold ${corValor}`}>
+            {formatoBRL.format(d.divergenciaValor)}
+          </p>
+          <p className="text-xs text-neutral-400">{sinal} em relação ao esperado</p>
         </div>
-      )}
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="text-sm text-neutral-500">% sobre valor de estoque</p>
+          <p className="text-xl font-semibold text-neutral-900">
+            {d.percentualSobreEstoque !== null ? formatoPct(d.percentualSobreEstoque) : "—"}
+          </p>
+          <p className="text-xs text-neutral-400">
+            estoque contado: {formatoBRL.format(d.valorEstoqueTotal)}
+          </p>
+        </div>
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="text-sm text-neutral-500">% sobre faturamento</p>
+          <p className="text-xl font-semibold text-neutral-900">
+            {d.percentualSobreFaturamento !== null ? formatoPct(d.percentualSobreFaturamento) : "—"}
+          </p>
+          <p className="text-xs text-neutral-400">
+            {d.receitaLiquida !== null
+              ? `faturamento: ${formatoBRL.format(d.receitaLiquida)}`
+              : "faturamento não lido"}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="text-sm text-neutral-500">
+            Sacola / material auxiliar ({d.sacolaMaterialAuxiliar.totalItens} itens)
+          </p>
+          <p className="text-lg font-medium text-neutral-900">
+            {formatoBRL.format(d.sacolaMaterialAuxiliar.divergenciaValor)}
+          </p>
+        </div>
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="text-sm text-neutral-500">Restante ({d.resto.totalItens} itens)</p>
+          <p className="text-lg font-medium text-neutral-900">
+            {formatoBRL.format(d.resto.divergenciaValor)}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
