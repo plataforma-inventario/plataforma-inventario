@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum PerfilAcesso {
+  AUDITOR // admin: acesso total, unico que lanca dados
+  DIRETORIA // acesso total, somente leitura
+  GERENTE_VAREJO
+  GERENTE_REVENDA
+  LOGISTICA
+}
+
+enum TipoLoja {
+  VAREJO
+  REVENDA
+  LOGISTICA // ex: Centro de Distribuicao
+}
+
+enum TipoUnidade {
+  MATRIZ
+  FILIAL
+}
+
+enum CicloContagem {
+  MENSAL
+  BIMESTRAL
+  TRIMESTRAL
+}
+
+// ---------------------------------------------------------------------------
+// Hierarquia organizacional: Grupo (CNPJ) -> Regiao -> Loja (PDV)
+// Regiao e independente de Grupo (uma regiao agrupa lojas de grupos
+// diferentes) para permitir relatorios como "todas as lojas de Dracena".
+// ---------------------------------------------------------------------------
+
+model Grupo {
+  id          String  @id @default(cuid())
+  nome        String  @unique // ex: "CP F Nunes", "CP SH Nunes"
+  razaoSocial String?
+
+  lojas Loja[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Regiao {
+  id   String @id @default(cuid())
+  nome String @unique // ex: "Prudente", "Dracena", "Venceslau"
+
+  lojas Loja[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Loja {
+  id            String         @id @default(cuid())
+  pdv           Int            @unique // codigo BPCS
+  nome          String
+  cnpj          String         @unique
+  tipoUnidade   TipoUnidade
+  tipoLoja      TipoLoja
+  cicloContagem CicloContagem?
+  ativa         Boolean        @default(true)
+
+  grupoId String
+  grupo   Grupo  @relation(fields: [grupoId], references: [id])
+
+  regiaoId String?
+  regiao   Regiao? @relation(fields: [regiaoId], references: [id])
+
+  gerentes LojaGerente[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([grupoId])
+  @@index([regiaoId])
+}
+
+// ---------------------------------------------------------------------------
+// Usuarios e controle de acesso
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String       @id @default(cuid())
+  nome      String
+  email     String       @unique
+  senhaHash String
+  perfil    PerfilAcesso
+  ativo     Boolean      @default(true)
+
+  lojasGeridas LojaGerente[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Vinculo N:N entre gerentes e as lojas sob sua gestao (item 1: controla
+// automaticamente o filtro de acesso por loja de cada gerente).
+model LojaGerente {
+  lojaId String
+  loja   Loja   @relation(fields: [lojaId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@id([lojaId, userId])
+}

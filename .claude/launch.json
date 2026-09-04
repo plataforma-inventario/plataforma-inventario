@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "C:\\Users\\Inventario\\Documents\\Plataforma Inventario\\.claude\\run-dev.cmd",
+      "runtimeArgs": [],
+      "port": 3000
+    }
+  ]
+}

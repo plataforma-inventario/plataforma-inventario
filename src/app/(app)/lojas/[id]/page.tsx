@@ -1,0 +1,172 @@
+import { notFound, redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { LojaFields } from "../loja-fields";
+import { atualizarLoja, vincularGerente, desvincularGerente } from "../actions";
+
+const PERFIL_GERENTE_POR_TIPO = {
+  VAREJO: "GERENTE_VAREJO",
+  REVENDA: "GERENTE_REVENDA",
+} as const;
+
+export default async function LojaDetalhePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const session = await auth();
+  if (!session) return null;
+
+  const { id } = await params;
+  const loja = await prisma.loja.findUnique({
+    where: { id },
+    include: { grupo: true, regiao: true, gerentes: { include: { user: true } } },
+  });
+  if (!loja) notFound();
+
+  const podeGerenciar = session.user.perfil === "AUDITOR";
+  if (!podeGerenciar) {
+    // gerente só pode ver lojas do seu tipo às quais está vinculado; diretoria/logística veem tudo (leitura)
+    const perfil = session.user.perfil;
+    if (perfil === "GERENTE_VAREJO" || perfil === "GERENTE_REVENDA") {
+      const vinculado = loja.gerentes.some((g) => g.userId === session.user.id);
+      if (!vinculado) redirect("/lojas");
+    }
+  }
+
+  const perfilGerenteEsperado =
+    loja.tipoLoja === "VAREJO" || loja.tipoLoja === "REVENDA"
+      ? PERFIL_GERENTE_POR_TIPO[loja.tipoLoja]
+      : null;
+
+  const [grupos, regioes, candidatosGerente] =
+    podeGerenciar && perfilGerenteEsperado
+      ? await Promise.all([
+          prisma.grupo.findMany({ orderBy: { nome: "asc" } }),
+          prisma.regiao.findMany({ orderBy: { nome: "asc" } }),
+          prisma.user.findMany({
+            where: {
+              ativo: true,
+              perfil: perfilGerenteEsperado,
+              lojasGeridas: { none: { lojaId: loja.id } },
+            },
+            orderBy: { nome: "asc" },
+          }),
+        ])
+      : podeGerenciar
+        ? await Promise.all([
+            prisma.grupo.findMany({ orderBy: { nome: "asc" } }),
+            prisma.regiao.findMany({ orderBy: { nome: "asc" } }),
+            Promise.resolve([]),
+          ])
+        : [[], [], []];
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div>
+        <p className="text-sm text-neutral-500">PDV {loja.pdv}</p>
+        <h1 className="text-lg font-medium text-neutral-900">{loja.nome}</h1>
+      </div>
+
+      {podeGerenciar ? (
+        <form action={atualizarLoja.bind(null, loja.id)} className="flex max-w-lg flex-col gap-4">
+          <LojaFields
+            grupos={grupos}
+            regioes={regioes}
+            pdvEditavel={false}
+            defaultValues={{
+              pdv: loja.pdv,
+              nome: loja.nome,
+              cnpj: loja.cnpj,
+              tipoUnidade: loja.tipoUnidade,
+              tipoLoja: loja.tipoLoja,
+              grupoId: loja.grupoId,
+              regiaoId: loja.regiaoId,
+              cicloContagem: loja.cicloContagem,
+            }}
+          />
+          <label className="flex items-center gap-2 text-sm text-neutral-700">
+            <input type="checkbox" name="ativa" defaultChecked={loja.ativa} />
+            Loja ativa
+          </label>
+          <button
+            type="submit"
+            className="mt-2 w-fit rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+          >
+            Salvar alterações
+          </button>
+        </form>
+      ) : (
+        <dl className="grid max-w-lg grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <dt className="text-neutral-500">CNPJ</dt>
+          <dd className="text-neutral-900">{loja.cnpj}</dd>
+          <dt className="text-neutral-500">Grupo</dt>
+          <dd className="text-neutral-900">{loja.grupo.nome}</dd>
+          <dt className="text-neutral-500">Região</dt>
+          <dd className="text-neutral-900">{loja.regiao?.nome ?? "—"}</dd>
+          <dt className="text-neutral-500">Ciclo</dt>
+          <dd className="text-neutral-900">{loja.cicloContagem ?? "não definido"}</dd>
+        </dl>
+      )}
+
+      <div>
+        <h2 className="mb-3 text-sm font-medium text-neutral-500">Gerentes responsáveis</h2>
+        <ul className="mb-3 flex flex-col gap-1">
+          {loja.gerentes.length === 0 && (
+            <li className="text-sm text-neutral-400">Nenhum gerente vinculado.</li>
+          )}
+          {loja.gerentes.map((g) => (
+            <li
+              key={g.userId}
+              className="flex items-center justify-between rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm"
+            >
+              <span>
+                {g.user.nome} <span className="text-neutral-400">({g.user.email})</span>
+              </span>
+              {podeGerenciar && (
+                <form action={desvincularGerente.bind(null, loja.id, g.userId)}>
+                  <button className="text-neutral-400 hover:text-red-600">remover</button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        {podeGerenciar && candidatosGerente.length > 0 && (
+          <form
+            action={vincularGerente.bind(null, loja.id)}
+            className="flex max-w-md items-center gap-2"
+          >
+            <select
+              name="userId"
+              required
+              className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            >
+              <option value="" disabled defaultValue="">
+                Selecionar gerente...
+              </option>
+              {candidatosGerente.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nome} ({u.email})
+                </option>
+              ))}
+            </select>
+            <button className="rounded-md border border-neutral-300 px-3 py-2 text-sm hover:bg-neutral-100">
+              Vincular
+            </button>
+          </form>
+        )}
+        {podeGerenciar && candidatosGerente.length === 0 && loja.tipoLoja !== "LOGISTICA" && (
+          <p className="text-sm text-neutral-400">
+            Nenhum usuário gerente disponível para vincular — crie um em Usuários.
+          </p>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-sm text-neutral-400">
+        Histórico de inventários e gráfico de divergência chegam quando o módulo de
+        Inventários for construído.
+      </div>
+    </div>
+  );
+}
