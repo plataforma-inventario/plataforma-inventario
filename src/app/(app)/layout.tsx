@@ -46,9 +46,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <span className="text-base font-semibold text-brand-dark">Plataforma de Inventário</span>
             </Link>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-neutral-500">
+              <Link href="/perfil" className="text-sm text-neutral-500 hover:text-brand-dark hover:underline">
                 {session.user.nome} · {ROTULO_PERFIL[perfil]}
-              </span>
+              </Link>
               <form
                 action={async () => {
                   "use server";
