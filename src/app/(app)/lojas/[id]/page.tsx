@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -61,11 +62,27 @@ export default async function LojaDetalhePage({
           ])
         : [[], [], []];
 
+  const ciclos = await prisma.ciclo.findMany({
+    where: { lojaId: loja.id },
+    orderBy: { dataFim: "desc" },
+    take: 10,
+  });
+
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <p className="text-sm text-neutral-500">PDV {loja.pdv}</p>
-        <h1 className="text-lg font-medium text-neutral-900">{loja.nome}</h1>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-neutral-500">PDV {loja.pdv}</p>
+          <h1 className="text-lg font-medium text-neutral-900">{loja.nome}</h1>
+        </div>
+        {podeGerenciar && (
+          <Link
+            href={`/lojas/${loja.id}/novo-ciclo`}
+            className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800"
+          >
+            + Novo lançamento
+          </Link>
+        )}
       </div>
 
       {podeGerenciar ? (
@@ -163,9 +180,40 @@ export default async function LojaDetalhePage({
         )}
       </div>
 
-      <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-sm text-neutral-400">
-        Histórico de inventários e gráfico de divergência chegam quando o módulo de
-        Inventários for construído.
+      <div>
+        <h2 className="mb-3 text-sm font-medium text-neutral-500">Lançamentos</h2>
+        {ciclos.length === 0 ? (
+          <p className="text-sm text-neutral-400">Nenhum lançamento ainda.</p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {ciclos.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/ciclos/${c.id}`}
+                  className="flex items-center justify-between rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm hover:bg-neutral-50"
+                >
+                  <span>
+                    {c.dataInicio.toLocaleDateString("pt-BR")} até{" "}
+                    {c.dataFim.toLocaleDateString("pt-BR")} ·{" "}
+                    {c.tipoInventario === "COMPLETO" ? "Completo" : "Cíclico"}
+                  </span>
+                  <span
+                    className={
+                      c.status === "FECHADO"
+                        ? "text-emerald-700"
+                        : "text-amber-600"
+                    }
+                  >
+                    {c.status === "FECHADO" ? "Fechado" : "Em aberto"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-3 text-sm text-neutral-400">
+          Gráfico de evolução de divergência chega junto com o módulo de Inventários.
+        </p>
       </div>
     </div>
   );

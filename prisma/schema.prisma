@@ -41,6 +41,38 @@ enum CicloContagem {
   TRIMESTRAL
 }
 
+enum TipoInventario {
+  CICLICO // cobre so os itens do setor/curva do ciclo (padrao)
+  COMPLETO // conta a loja inteira, fora do calendario normal - exige motivo
+}
+
+// Motivos conhecidos de inventario completo (item 3.0). "OUTRO" cobre casos
+// nao previstos - motivoDetalhe carrega o texto livre nesse caso.
+enum MotivoInventarioCompleto {
+  SUSPEITA_ROUBO
+  POS_NATAL_JANEIRO
+  OUTRO
+}
+
+enum StatusCiclo {
+  ABERTO // lancamento em andamento (uploads incompletos)
+  FECHADO // cruzamento de divergencias ja rodou, entra no historico
+}
+
+// Um slot por categoria no ciclo de lancamento (item 2.1). Ajuste entra como
+// categoria unica (nao separada em entrada/saida) porque o relatorio real da
+// loja ja traz os dois tipos juntos num so arquivo (coluna "Tipo Ajuste"
+// dentro do PDF) - forcar dois uploads geraria o mesmo arquivo duas vezes e
+// esbarraria no bloqueio de duplicidade do item 10.
+enum CategoriaArquivo {
+  INVENTARIO
+  TRANSFERENCIA_SAIDA
+  TRANSFERENCIA_ENTRADA
+  AJUSTE
+  REQUISICAO
+  FATURAMENTO
+}
+
 // ---------------------------------------------------------------------------
 // Hierarquia organizacional: Grupo (CNPJ) -> Regiao -> Loja (PDV)
 // Regiao e independente de Grupo (uma regiao agrupa lojas de grupos
@@ -85,6 +117,7 @@ model Loja {
   regiao   Regiao? @relation(fields: [regiaoId], references: [id])
 
   gerentes LojaGerente[]
+  ciclos   Ciclo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -105,7 +138,9 @@ model User {
   perfil    PerfilAcesso
   ativo     Boolean      @default(true)
 
-  lojasGeridas LojaGerente[]
+  lojasGeridas     LojaGerente[]
+  ciclosCriados    Ciclo[]
+  arquivosEnviados ArquivoImportado[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -123,4 +158,61 @@ model LojaGerente {
   createdAt DateTime @default(now())
 
   @@id([lojaId, userId])
+}
+
+// ---------------------------------------------------------------------------
+// Fluxo de lancamento (item 2.1): cada Ciclo cobre o periodo entre o
+// inventario anterior de uma loja e o atual. Fecha quando os 6 uploads
+// necessarios estao completos e o cruzamento de divergencias roda em cima.
+// ---------------------------------------------------------------------------
+
+model Ciclo {
+  id     String @id @default(cuid())
+  lojaId String
+  loja   Loja   @relation(fields: [lojaId], references: [id])
+
+  // Detectado automaticamente a partir do dataFim do ciclo FECHADO anterior
+  // dessa loja (ou da data de cadastro da loja, se for o primeiro ciclo).
+  dataInicio DateTime
+  dataFim    DateTime
+
+  tipoInventario TipoInventario
+  motivoCompleto MotivoInventarioCompleto?
+  motivoDetalhe  String?
+
+  observacao String? // item 10.3: contexto livre (ex: "loja em reforma")
+
+  status StatusCiclo @default(ABERTO)
+
+  arquivos ArquivoImportado[]
+
+  createdByUserId String
+  createdBy       User   @relation(fields: [createdByUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lojaId])
+}
+
+model ArquivoImportado {
+  id      String @id @default(cuid())
+  cicloId String
+  ciclo   Ciclo  @relation(fields: [cicloId], references: [id])
+
+  categoria CategoriaArquivo
+
+  nomeArquivo  String
+  tipoMime     String
+  hashConteudo String // sha256 do conteudo - bloqueia reimportacao do mesmo arquivo (item 10)
+  tamanhoBytes Int
+  conteudo     Bytes // arquivo original guardado direto no Postgres (ver feedback_stack_proposal na memoria: sem provedor externo de storage, arquivos sao pequenos)
+
+  uploadedByUserId String
+  uploadedBy       User   @relation(fields: [uploadedByUserId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([cicloId, categoria]) // um arquivo por categoria dentro do mesmo ciclo
+  @@unique([hashConteudo]) // mesmo arquivo (byte a byte) nunca pode ser reimportado, em nenhum ciclo
 }
