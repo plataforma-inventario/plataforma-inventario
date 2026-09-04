@@ -1,23 +1,30 @@
 import { auth } from "@/auth";
 import { getAjustes } from "@/lib/relatorios";
 import { getLojasVisiveis } from "@/lib/access";
-import { FiltroLoja } from "../filtro-loja";
+import { FiltroRelatorio, type ValoresFiltro } from "../filtro-relatorio";
+import type { DirecaoMovimento, TipoLoja } from "@/generated/prisma/client";
 
 const formatoBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-export default async function AjustesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ loja?: string }>;
-}) {
+export default async function AjustesPage({ searchParams }: { searchParams: Promise<ValoresFiltro> }) {
   const session = await auth();
   if (!session) return null;
-  const { loja } = await searchParams;
+  const valores = await searchParams;
 
   const [{ itens, totalEntrada, totalSaida }, lojas] = await Promise.all([
-    getAjustes(session.user, loja),
+    getAjustes(session.user, {
+      lojaId: valores.loja,
+      mes: valores.mes ? Number(valores.mes) : undefined,
+      ano: valores.ano ? Number(valores.ano) : undefined,
+      tipoLoja: valores.tipo as TipoLoja | undefined,
+      direcao: valores.direcao as DirecaoMovimento | undefined,
+    }),
     getLojasVisiveis(session.user),
   ]);
+
+  const query = new URLSearchParams(
+    Object.entries(valores).filter(([, v]) => v) as [string, string][]
+  ).toString();
 
   return (
     <div className="flex flex-col gap-4">
@@ -28,8 +35,15 @@ export default async function AjustesPage({
             Itens que entraram e saíram por ajuste (sem nota fiscal), por loja e período.
           </p>
         </div>
-        <FiltroLoja lojas={lojas} valorAtual={loja} />
+        <a
+          href={`/ajustes/export${query ? `?${query}` : ""}`}
+          className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+        >
+          Exportar Excel
+        </a>
       </div>
+
+      <FiltroRelatorio lojas={lojas} valores={valores} mostrarDirecao />
 
       <div className="grid grid-cols-2 gap-3 sm:w-96">
         <div className="rounded-lg border border-neutral-200 bg-white p-4">

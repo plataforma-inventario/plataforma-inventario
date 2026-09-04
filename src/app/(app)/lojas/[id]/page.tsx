@@ -69,6 +69,16 @@ export default async function LojaDetalhePage({
     take: 10,
   });
 
+  const podeVerHistorico = session.user.perfil === "AUDITOR" || session.user.perfil === "DIRETORIA";
+  const historico = podeVerHistorico
+    ? await prisma.logAlteracao.findMany({
+        where: { tabela: { in: ["Loja", "LojaGerente"] }, registroId: loja.id },
+        include: { usuario: true },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      })
+    : [];
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-start justify-between">
@@ -216,6 +226,30 @@ export default async function LojaDetalhePage({
           Gráfico de evolução de divergência chega junto com o módulo de Inventários.
         </p>
       </div>
+
+      {podeVerHistorico && (
+        <div>
+          <h2 className="mb-3 text-sm font-medium text-neutral-500">Histórico de alterações</h2>
+          {historico.length === 0 ? (
+            <p className="text-sm text-neutral-400">Nenhuma alteração registrada ainda.</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {historico.map((h) => (
+                <li
+                  key={h.id}
+                  className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-600"
+                >
+                  <span className="text-neutral-400">{h.createdAt.toLocaleString("pt-BR")}</span> —{" "}
+                  {h.usuario.nome} alterou <strong>{h.campo}</strong> de{" "}
+                  <span className="text-neutral-400">{h.valorAnterior ?? "—"}</span> para{" "}
+                  <span className="text-neutral-900">{h.valorNovo ?? "—"}</span>
+                  <div className="text-xs text-neutral-400">Motivo: {h.motivo}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

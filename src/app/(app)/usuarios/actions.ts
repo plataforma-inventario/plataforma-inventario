@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAuditor } from "@/lib/authz";
+import { registrarAlteracoes } from "@/lib/log-alteracao";
 import { PerfilAcesso } from "@/generated/prisma/client";
 
 const PERFIS_VALIDOS = Object.values(PerfilAcesso);
@@ -44,7 +45,20 @@ export async function criarUsuario(
 }
 
 export async function alternarAtivo(userId: string, ativo: boolean) {
-  await requireAuditor();
-  await prisma.user.update({ where: { id: userId }, data: { ativo } });
+  const session = await requireAuditor();
+
+  await prisma.$transaction(async (tx) => {
+    const antes = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+    await tx.user.update({ where: { id: userId }, data: { ativo } });
+    await registrarAlteracoes(tx, {
+      tabela: "User",
+      registroId: userId,
+      usuarioId: session.user.id,
+      motivo: ativo ? "Usuário reativado" : "Usuário inativado",
+      antes: { ativo: antes.ativo },
+      depois: { ativo },
+    });
+  });
+
   revalidatePath("/usuarios");
 }

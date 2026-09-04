@@ -1,23 +1,33 @@
 import { auth } from "@/auth";
 import { getRequisicoes } from "@/lib/relatorios";
 import { getLojasVisiveis } from "@/lib/access";
-import { FiltroLoja } from "../filtro-loja";
+import { FiltroRelatorio, type ValoresFiltro } from "../filtro-relatorio";
+import type { TipoLoja } from "@/generated/prisma/client";
 
 const formatoBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export default async function RequisicoesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ loja?: string }>;
+  searchParams: Promise<ValoresFiltro>;
 }) {
   const session = await auth();
   if (!session) return null;
-  const { loja } = await searchParams;
+  const valores = await searchParams;
 
   const [{ itens, custoTotal }, lojas] = await Promise.all([
-    getRequisicoes(session.user, loja),
+    getRequisicoes(session.user, {
+      lojaId: valores.loja,
+      mes: valores.mes ? Number(valores.mes) : undefined,
+      ano: valores.ano ? Number(valores.ano) : undefined,
+      tipoLoja: valores.tipo as TipoLoja | undefined,
+    }),
     getLojasVisiveis(session.user),
   ]);
+
+  const query = new URLSearchParams(
+    Object.entries(valores).filter(([, v]) => v) as [string, string][]
+  ).toString();
 
   return (
     <div className="flex flex-col gap-4">
@@ -28,8 +38,15 @@ export default async function RequisicoesPage({
             Demonstradores, brindes, vencidos, premiações, perda/roubo e material auxiliar.
           </p>
         </div>
-        <FiltroLoja lojas={lojas} valorAtual={loja} />
+        <a
+          href={`/requisicoes/export${query ? `?${query}` : ""}`}
+          className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+        >
+          Exportar Excel
+        </a>
       </div>
+
+      <FiltroRelatorio lojas={lojas} valores={valores} />
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4 sm:w-64">
         <p className="text-sm text-neutral-500">Custo total</p>

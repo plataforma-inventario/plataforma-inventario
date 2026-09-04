@@ -127,23 +127,49 @@ export async function atualizarMetaDivergencia(lojaId: string, formData: FormDat
 }
 
 export async function vincularGerente(lojaId: string, formData: FormData) {
-  await requireAuditor();
+  const session = await requireAuditor();
   const userId = String(formData.get("userId") ?? "");
   if (!userId) return;
 
-  await prisma.lojaGerente.upsert({
-    where: { lojaId_userId: { lojaId, userId } },
-    update: {},
-    create: { lojaId, userId },
+  await prisma.$transaction(async (tx) => {
+    await tx.lojaGerente.upsert({
+      where: { lojaId_userId: { lojaId, userId } },
+      update: {},
+      create: { lojaId, userId },
+    });
+    await tx.logAlteracao.create({
+      data: {
+        tabela: "LojaGerente",
+        registroId: lojaId,
+        campo: "gerente",
+        valorAnterior: null,
+        valorNovo: userId,
+        motivo: "Gerente vinculado à loja",
+        usuarioId: session.user.id,
+      },
+    });
   });
 
   revalidatePath(`/lojas/${lojaId}`);
 }
 
 export async function desvincularGerente(lojaId: string, userId: string) {
-  await requireAuditor();
-  await prisma.lojaGerente.delete({
-    where: { lojaId_userId: { lojaId, userId } },
+  const session = await requireAuditor();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.lojaGerente.delete({ where: { lojaId_userId: { lojaId, userId } } });
+    await tx.logAlteracao.create({
+      data: {
+        tabela: "LojaGerente",
+        registroId: lojaId,
+        campo: "gerente",
+        valorAnterior: userId,
+        valorNovo: null,
+        motivo: "Gerente desvinculado da loja",
+        usuarioId: session.user.id,
+      },
+    });
   });
+
   revalidatePath(`/lojas/${lojaId}`);
 }

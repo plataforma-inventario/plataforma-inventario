@@ -145,6 +145,7 @@ model Loja {
   gerentes         LojaGerente[]
   ciclos           Ciclo[]
   defeitos         Defeito[]
+  insucessos       Insucesso[]
   logisticaReversa LogisticaReversa[]
 
   createdAt DateTime @default(now())
@@ -166,12 +167,14 @@ model User {
   perfil    PerfilAcesso
   ativo     Boolean      @default(true)
 
-  lojasGeridas           LojaGerente[]
-  ciclosCriados          Ciclo[]
-  arquivosEnviados       ArquivoImportado[]
-  defeitosCriados        Defeito[]
-  logisticaReversaCriada LogisticaReversa[]
-  alteracoesRegistradas  LogAlteracao[]
+  lojasGeridas              LojaGerente[]
+  ciclosCriados             Ciclo[]
+  arquivosEnviados          ArquivoImportado[]
+  arquivosDevolucaoEnviados ArquivoDevolucao[]
+  defeitosCriados           Defeito[]
+  insucessosCriados         Insucesso[]
+  logisticaReversaCriada    LogisticaReversa[]
+  alteracoesRegistradas     LogAlteracao[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -387,15 +390,53 @@ enum StatusReembolso {
   INTEGRAL
 }
 
+// Item 7: defeito/falta de mercadoria para devolução. O relatorio de origem
+// (mesmo formato "notas fiscais de compra", com Operacao = "DEVOLUCAO DE
+// COMPRA") nao distingue as duas categorias - o auditor classifica cada NF
+// na hora da revisao (ver TipoDevolucao). O "Valor Total" do relatorio vem
+// repetido em toda linha da mesma NF - o parser pega o valor uma unica vez
+// por nota, nunca soma as linhas (que sao os itens, ja detalhados em
+// ItemDefeito).
+enum TipoDevolucao {
+  DEFEITO
+  FALTA_MERCADORIA
+}
+
+model ArquivoDevolucao {
+  id           String @id @default(cuid())
+  nomeArquivo  String
+  tipoMime     String
+  hashConteudo String @unique
+  tamanhoBytes Int
+  conteudo     Bytes
+
+  uploadedByUserId String
+  uploadedBy       User   @relation(fields: [uploadedByUserId], references: [id])
+
+  statusParsing StatusParsing @default(PENDENTE)
+  resumoParsing String?
+  avisosParsing String[]      @default([])
+
+  createdAt DateTime @default(now())
+
+  defeitos Defeito[]
+}
+
 model Defeito {
   id     String @id @default(cuid())
   lojaId String
   loja   Loja   @relation(fields: [lojaId], references: [id])
 
+  arquivoDevolucaoId String?
+  arquivoDevolucao   ArquivoDevolucao? @relation(fields: [arquivoDevolucaoId], references: [id])
+
   numeroNotaFiscal String
+  fornecedorNome   String?
   dataEnvio        DateTime
-  valorEnviado     Decimal  @db.Decimal(14, 2)
-  descricaoItens   String?
+  valorEnviado     Decimal  @db.Decimal(14, 2) // valor da NF, pego uma vez - nunca somado por linha/item
+  descricaoItens   String? // usado só quando lançado manualmente, sem itens estruturados
+
+  tipoDevolucao TipoDevolucao? // classificado manualmente pelo auditor na revisão
 
   statusReembolso          StatusReembolso @default(PENDENTE)
   valorReembolsado         Decimal         @default(0) @db.Decimal(14, 2)
@@ -408,6 +449,45 @@ model Defeito {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  itens ItemDefeito[]
+
+  @@unique([lojaId, numeroNotaFiscal])
+  @@index([lojaId])
+}
+
+model ItemDefeito {
+  id        String  @id @default(cuid())
+  defeitoId String
+  defeito   Defeito @relation(fields: [defeitoId], references: [id], onDelete: Cascade)
+
+  codigoProduto    String
+  descricaoProduto String
+  unidade          String
+  quantidade       Decimal @db.Decimal(14, 3)
+  valorTotalItem   Decimal @db.Decimal(14, 2)
+
+  @@index([defeitoId])
+}
+
+// Item 7 (ampliado): quando o processo de devolução não é concluído - a
+// caixa/NF de defeito fica parada na loja. Registra estatística de quais
+// lojas nunca finalizam o processo vs. quais nunca tiveram um insucesso.
+model Insucesso {
+  id     String @id @default(cuid())
+  lojaId String
+  loja   Loja   @relation(fields: [lojaId], references: [id])
+
+  data              DateTime
+  numeroNotaFiscal  String? // referencia livre - a NF pode nem ter chegado a existir no sistema ainda
+  fotoCaixa         Bytes?
+  fotoCaixaTipoMime String?
+  observacao        String
+
+  createdByUserId String
+  createdBy       User   @relation(fields: [createdByUserId], references: [id])
+
+  createdAt DateTime @default(now())
 
   @@index([lojaId])
 }
