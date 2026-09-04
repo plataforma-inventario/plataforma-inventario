@@ -1,12 +1,11 @@
 "use server";
 
-import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAuditor } from "@/lib/authz";
 import { registrarAlteracoes } from "@/lib/log-alteracao";
-import { parseDevolucao } from "@/lib/parsers/devolucao";
-import { StatusParsing, StatusReembolso, TipoDevolucao } from "@/generated/prisma/client";
+import { importarArquivoDevolucao } from "@/lib/parsers/processar-devolucao";
+import { StatusReembolso, TipoDevolucao } from "@/generated/prisma/client";
 
 export async function uploadDevolucao(
   _prevState: { erro?: string; aviso?: string } | undefined,
@@ -20,82 +19,17 @@ export async function uploadDevolucao(
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const hashConteudo = createHash("sha256").update(buffer).digest("hex");
-
-  const duplicado = await prisma.arquivoDevolucao.findUnique({ where: { hashConteudo } });
-  if (duplicado) {
-    return {
-      erro: `Esse arquivo já foi importado antes (${duplicado.nomeArquivo}). Reenviar o mesmo arquivo geraria notas em dobro.`,
-    };
-  }
-
-  const resultado = parseDevolucao(buffer);
-  const avisos = [...resultado.avisos];
-
-  await prisma.$transaction(async (tx) => {
-    const arquivo = await tx.arquivoDevolucao.create({
-      data: {
-        nomeArquivo: file.name,
-        tipoMime: file.type || "text/csv",
-        hashConteudo,
-        tamanhoBytes: file.size,
-        conteudo: buffer,
-        uploadedByUserId: session.user.id,
-        statusParsing: resultado.linhas.length === 0 ? StatusParsing.ERRO : StatusParsing.PENDENTE,
-      },
-    });
-
-    let notasCriadas = 0;
-    for (const nota of resultado.linhas) {
-      const loja = await tx.loja.findUnique({ where: { pdv: nota.lojaPdv } });
-      if (!loja) {
-        avisos.push(`NF ${nota.numeroDocumento}: loja com PDV ${nota.lojaPdv} não encontrada, ignorada.`);
-        continue;
-      }
-
-      const existente = await tx.defeito.findUnique({
-        where: { lojaId_numeroNotaFiscal: { lojaId: loja.id, numeroNotaFiscal: nota.numeroDocumento } },
-      });
-      if (existente) {
-        avisos.push(`NF ${nota.numeroDocumento} (loja ${nota.lojaPdv}) já existia, ignorada nesta importação.`);
-        continue;
-      }
-
-      await tx.defeito.create({
-        data: {
-          lojaId: loja.id,
-          arquivoDevolucaoId: arquivo.id,
-          numeroNotaFiscal: nota.numeroDocumento,
-          fornecedorNome: nota.fornecedorNome,
-          dataEnvio: nota.dataEmissao,
-          valorEnviado: nota.valorTotalNota.replace(/^-/, ""), // guardamos como magnitude positiva
-          createdByUserId: session.user.id,
-          itens: {
-            create: nota.itens.map((i) => ({
-              codigoProduto: i.codigoProduto,
-              descricaoProduto: i.descricaoProduto,
-              unidade: i.unidade,
-              quantidade: i.quantidade,
-              valorTotalItem: i.valorTotalItem,
-            })),
-          },
-        },
-      });
-      notasCriadas++;
-    }
-
-    await tx.arquivoDevolucao.update({
-      where: { id: arquivo.id },
-      data: {
-        statusParsing: avisos.length > 0 ? StatusParsing.AVISO : StatusParsing.OK,
-        resumoParsing: `${notasCriadas} nota(s) criada(s), ${avisos.length} aviso(s)`,
-        avisosParsing: avisos,
-      },
-    });
-  });
+  const resultado = await importarArquivoDevolucao(
+    buffer,
+    file.name,
+    file.type || "text/csv",
+    session.user.id
+  );
 
   revalidatePath("/defeitos");
-  return avisos.length > 0 ? { aviso: avisos.join(" | ") } : {};
+  if (resultado.status === "ERRO") return { erro: resultado.mensagem };
+  if (resultado.status === "AVISO") return { aviso: resultado.mensagem };
+  return {};
 }
 
 export async function classificarTipoDevolucao(defeitoId: string, tipo: TipoDevolucao) {

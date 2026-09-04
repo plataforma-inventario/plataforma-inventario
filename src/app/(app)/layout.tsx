@@ -20,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ehGerente = perfil === "GERENTE_VAREJO" || perfil === "GERENTE_REVENDA";
 
   const itensNav = [
+    { href: "/importar", label: "Central de importação", oculto: !podeGerenciar },
     { href: "/lojas", label: "Lojas", oculto: false },
     { href: "/ranking", label: "Ranking", oculto: false },
     { href: "/ajustes", label: "Ajustes", oculto: false },
