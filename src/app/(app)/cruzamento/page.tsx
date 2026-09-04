@@ -26,12 +26,20 @@ export default async function CruzamentoPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-lg font-medium text-brand-dark">Divergências cruzadas</h1>
-        <p className="text-sm text-neutral-500">
-          Item faltando numa loja e sobrando em outra, no mesmo período, sem transferência ou
-          ajuste que explique — considerando todas as lojas do sistema, não só da mesma região.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-lg font-medium text-brand-dark">Divergências cruzadas</h1>
+          <p className="text-sm text-neutral-500">
+            Item faltando numa loja e sobrando em outra, no mesmo período, sem transferência ou
+            ajuste que explique — considerando todas as lojas do sistema, não só da mesma região.
+          </p>
+        </div>
+        <Link
+          href="/cruzamento/pendencias"
+          className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+        >
+          Pendências de saída sem chegada
+        </Link>
       </div>
 
       {divergencias.length === 0 ? (
