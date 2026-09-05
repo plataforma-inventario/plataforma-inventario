@@ -19,7 +19,8 @@ export const SECOES_TOC: { id: string; label: string }[] = [
   { id: "tipos-arquivo", label: "2. Cada tipo de arquivo" },
   { id: "regras", label: "3. Regras importantes" },
   { id: "passo-a-passo", label: "4. Passo a passo" },
-  { id: "erros", label: "5. Se der erro" },
+  { id: "agenda-visitas", label: "5. Agenda de visitas" },
+  { id: "erros", label: "6. Se der erro" },
 ];
 
 export const MANUAL: Bloco[] = [
@@ -103,7 +104,7 @@ export const MANUAL: Bloco[] = [
   {
     tipo: "aviso",
     texto:
-      "Esse é o MESMO relatório usado em Logística Reversa (seção 2.8) — só o CFOP dentro do arquivo diferencia. A Central de Importação já separa sozinha; se for lançar manualmente pela tela do lançamento, confira que as notas ali são mesmo CFOP 5152.",
+      "Esse é o MESMO relatório usado em Logística Reversa (seção 2.9) — só o CFOP dentro do arquivo diferencia. A Central de Importação já separa sozinha; se for lançar manualmente pela tela do lançamento, confira que as notas ali são mesmo CFOP 5152.",
   },
 
   { tipo: "h3", texto: "2.3 Notas fiscais de transferência de entrada" },
@@ -178,11 +179,11 @@ export const MANUAL: Bloco[] = [
       "A planilha tem duas abas: uma com \"Relat\" no nome (os dados — o sistema soma o valor de cada linha de período que tiver rótulo na coluna B e valor na coluna C, ignorando as linhas de total) e outra com \"Parâmetro\"/\"Parametro\" no nome (só usada pra identificar a loja pelo PDV, numa linha que começa com \"Lojas\"). Como essa leitura é pela posição das colunas (não pelo nome), não reorganize ou reformate a planilha antes de enviar — envie exatamente como o sistema exportou.",
   },
 
-  { tipo: "h3", texto: "2.7 Notas fiscais de defeito (e reembolso)" },
+  { tipo: "h3", texto: "2.7 Notas fiscais de defeito" },
   { tipo: "tabela", cabecalho: ["", ""], linhas: [
     ["Formato aceito", "CSV"],
     ["Vem de", "Mesmo relatório de \"notas fiscais de compra\" da seção 2.3, com Operação = \"DEVOLUÇÃO DE COMPRA\""],
-    ["Onde fazer upload", "Aba \"Defeitos\" (menu) — não está ligado a nenhum lançamento/período, pode enviar a qualquer momento"],
+    ["Onde fazer upload", "Aba \"Defeitos\" (menu), quadro \"Relatório de devoluções (NF)\" — não está ligado a nenhum lançamento/período, pode enviar a qualquer momento"],
   ] },
   {
     tipo: "p",
@@ -190,14 +191,34 @@ export const MANUAL: Bloco[] = [
       "Colunas: Número do Documento, Código da Loja, Nome do Fornecedor, Data De Emissão, Valor Total (valor da NF inteira — vem repetido em toda linha do arquivo, o sistema já sabe que não é pra somar), Código do produto, Descrição Produto, Unidade de medida, Quantidade de itens, Valor total do item.",
   },
   {
-    tipo: "listaNumerada",
-    itens: [
-      "Depois de lançado, classifique cada NF na própria tabela como \"Defeito\" ou \"Falta de mercadoria\" (dropdown na coluna Tipo).",
-      "Pra registrar o reembolso, tem duas formas: (a) automática — suba na mesma aba o PDF \"Aviso de Crédito\" que o Grupo Boticário envia; o sistema bate pela referência da NF (ignorando zeros à esquerda e o \"-001\" do fim) e preenche valor/data/status sozinho; se a mesma NF existir em mais de uma loja, ele avisa e pede pra escolher a loja certa no campo do formulário de upload; (b) manual — edite Status/Valor Reembolsado/Data direto na linha da tabela e clique Salvar.",
-    ],
+    tipo: "p",
+    texto:
+      "Depois de lançado, classifique cada NF na própria tabela como \"Defeito\" ou \"Falta de mercadoria\" (dropdown na coluna Tipo) — isso não vem no arquivo, precisa ser feito manualmente.",
   },
 
-  { tipo: "h3", texto: "2.8 Logística reversa" },
+  { tipo: "h3", texto: "2.8 Aviso de Crédito (registra o reembolso do defeito sozinho)" },
+  { tipo: "tabela", cabecalho: ["", ""], linhas: [
+    ["Formato aceito", "PDF"],
+    ["Vem de", "Portal/Extranet do Grupo Boticário — o aviso de que o reembolso de uma ou mais NFs de devolução foi concedido"],
+    ["Onde fazer upload", "Aba \"Defeitos\" (menu), quadro \"Aviso de Crédito (PDF)\", ao lado do upload das notas de devolução — também não depende de lançamento/período"],
+  ] },
+  {
+    tipo: "p",
+    texto:
+      "O sistema lê direto do PDF: a data do aviso (linha \"dd/mm/aaaa\" no topo) e, pra cada linha de crédito (formato \"000000439-001 R$ 9,00 DEVOLUÇÃO DE MERCADORIA\"), o número da NF (sem os zeros à esquerda e sem o \"-001\" do fim — \"000000439-001\" vira \"439\") e o valor. Linhas com outro motivo (ex.: \"Lçto G/L Manual\") são ignoradas de propósito, só interessa \"DEVOLUÇÃO DE MERCADORIA\".",
+  },
+  {
+    tipo: "p",
+    texto:
+      "Pra cada NF do PDF, o sistema procura um Defeito já lançado (seção 2.7) com o mesmo número de NF e preenche sozinho o valor reembolsado (somando se já tinha um reembolso parcial antes), a data e o status (Integral quando o total reembolsado atinge o valor enviado, Parcial caso contrário). Se a mesma NF existir em Defeitos de mais de uma loja, o sistema não arrisca adivinhar — avisa e ignora; nesse caso, reenvie o mesmo PDF escolhendo a loja certa no campo ao lado do botão de envio (em vez de \"Cruzar em todas as lojas\").",
+  },
+  {
+    tipo: "p",
+    texto:
+      "O reembolso também pode ser editado manualmente a qualquer momento, direto na tabela de Defeitos: mude Status/Valor Reembolsado/Data na linha e clique Salvar — útil quando não há (ou ainda não chegou) o PDF do Aviso de Crédito daquele período.",
+  },
+
+  { tipo: "h3", texto: "2.9 Logística reversa" },
   { tipo: "tabela", cabecalho: ["", ""], linhas: [
     ["Formato aceito", "CSV"],
     ["Vem de", "Mesmo relatório de \"notas fiscais de venda\" da seção 2.2, filtrado por CFOP 5949/6949 (material pós-consumo pra reciclagem)"],
@@ -275,7 +296,24 @@ export const MANUAL: Bloco[] = [
   },
 
   // ---------------------------------------------------------------------
-  { tipo: "h2", id: "erros", texto: "5. Se der erro" },
+  { tipo: "h2", id: "agenda-visitas", texto: "5. Agenda de visitas (print do calendário)" },
+  {
+    tipo: "p",
+    texto:
+      "Isso não é um dos arquivos do lançamento — é uma referência visual separada, em Calendário → Agenda de visitas (só Auditor), pra registrar o dia exato combinado com cada loja pra visita, no lugar da estimativa automática por mês que o Calendário mostra por padrão.",
+  },
+  {
+    tipo: "listaNumerada",
+    itens: [
+      "Escolha o mês e o ano no topo da página e clique \"Ver\".",
+      "Em \"Print de referência\", clique \"Escolher arquivo\", selecione a imagem (print de tela do Google Agenda daquele mês, qualquer formato de imagem) e clique \"Enviar imagem\" — só serve de referência visual, pode enviar mais de uma se precisar.",
+      "Na tabela abaixo, pra cada loja (só aparecem as que têm ciclo de contagem definido), clique no campo de data e escolha o dia combinado — salva sozinho ao escolher a data, não tem botão \"Salvar\" separado.",
+      "Esse dia digitado passa a aparecer no Calendário como \"(combinado)\" no lugar do mês estimado pelo cronograma fixo.",
+    ],
+  },
+
+  // ---------------------------------------------------------------------
+  { tipo: "h2", id: "erros", texto: "6. Se der erro" },
   { tipo: "tabela", cabecalho: ["Mensagem / situação", "O que fazer"], linhas: [
     ["\"Esse arquivo já foi importado antes (nome-do-arquivo)\"", "O arquivo já foi lançado — confira se é mesmo o período novo (às vezes a pessoa reexporta o mesmo relatório sem querer). Se for período diferente, exporte de novo do sistema da loja com o filtro de data certo."],
     ["\"Não identifiquei a loja automaticamente\" (Central de Importação)", "Envie esse arquivo pela tela do lançamento da loja certa (Lojas → loja → lançamento aberto) em vez da Central de Importação."],
