@@ -34,6 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/itens", label: "Itens", oculto: ehGerente },
     { href: "/calendario", label: "Calendário", oculto: false },
     { href: "/usuarios", label: "Usuários", oculto: !podeGerenciar },
+    { href: "/ajuda", label: "Ajuda", oculto: false },
   ];
 
   return (
