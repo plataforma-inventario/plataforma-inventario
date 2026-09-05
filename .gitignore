@@ -47,3 +47,6 @@ next-env.d.ts
 /.windsurf/
 /.claude/skills/
 
+# arquivos de teste fictícios gerados pra simular o fluxo de importação (não são dado real nem código)
+/dados-teste-simulacao/
+
