@@ -1,3 +1,4 @@
+import "./dommatrix-polyfill";
 import { PDFParse } from "pdf-parse";
 import * as XLSX from "xlsx";
 import { parseCsvRelatorio, pick } from "./util";

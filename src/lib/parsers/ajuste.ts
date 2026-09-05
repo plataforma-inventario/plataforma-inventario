@@ -1,3 +1,4 @@
+import "./dommatrix-polyfill";
 import { PDFParse } from "pdf-parse";
 import { parseDataBr, parseDecimalBr, type ResultadoParsing } from "./util";
 import { DirecaoMovimento } from "@/generated/prisma/client";

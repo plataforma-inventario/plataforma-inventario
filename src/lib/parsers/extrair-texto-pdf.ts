@@ -1,3 +1,4 @@
+import "./dommatrix-polyfill";
 import { PDFParse } from "pdf-parse";
 
 /** Extrai o texto puro de um PDF - usado tanto pra detectar o tipo quanto pra parsear o conteúdo. */
