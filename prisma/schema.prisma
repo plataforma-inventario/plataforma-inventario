@@ -177,18 +177,19 @@ model User {
   perfil    PerfilAcesso
   ativo     Boolean      @default(true)
 
-  lojasGeridas              LojaGerente[]
-  ciclosCriados             Ciclo[]
-  arquivosEnviados          ArquivoImportado[]
-  arquivosDevolucaoEnviados ArquivoDevolucao[]
-  arquivosAvisoCreditoEnviados ArquivoAvisoCredito[]
-  defeitosCriados           Defeito[]
-  insucessosCriados         Insucesso[]
-  logisticaReversaCriada    LogisticaReversa[]
+  lojasGeridas                     LojaGerente[]
+  ciclosCriados                    Ciclo[]
+  arquivosEnviados                 ArquivoImportado[]
+  arquivosDevolucaoEnviados        ArquivoDevolucao[]
+  arquivosAvisoCreditoEnviados     ArquivoAvisoCredito[]
+  defeitosCriados                  Defeito[]
+  insucessosCriados                Insucesso[]
+  logisticaReversaCriada           LogisticaReversa[]
   arquivosLogisticaReversaEnviados ArquivoLogisticaReversa[]
-  alteracoesRegistradas     LogAlteracao[]
-  imagensAgendaEnviadas     ImagemAgenda[]
-  visitasAgendadasCriadas   VisitaAgendada[]
+  alteracoesRegistradas            LogAlteracao[]
+  imagensAgendaEnviadas            ImagemAgenda[]
+  visitasAgendadasCriadas          VisitaAgendada[]
+  gruposCodigoEquivalenteCriados   GrupoCodigoEquivalente[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -653,4 +654,37 @@ model VisitaAgendada {
   updatedAt DateTime @updatedAt
 
   @@unique([lojaId, ano, mes])
+}
+
+// ---------------------------------------------------------------------------
+// Cruzamento de códigos equivalentes: registra manualmente que dois (ou mais)
+// códigos de produto diferentes são, na prática, o mesmo item físico (ex:
+// código legado/duplicado no cadastro da própria O Boticário) - usado por
+// getDivergenciasCodigoCruzado() (src/lib/cruzamento-codigo.ts) pra detectar
+// "sobra num código / falta no outro" que hoje passa despercebido porque o
+// cruzamento padrão (src/lib/cruzamento.ts) só compara pelo mesmo código.
+// ---------------------------------------------------------------------------
+
+model GrupoCodigoEquivalente {
+  id         String  @id @default(cuid())
+  descricao  String // rótulo livre, ex: "Loção 400ml Ameixa Negra"
+  observacao String?
+
+  createdByUserId String
+  createdBy       User   @relation(fields: [createdByUserId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  codigos CodigoEquivalente[]
+}
+
+model CodigoEquivalente {
+  id      String                 @id @default(cuid())
+  grupoId String
+  grupo   GrupoCodigoEquivalente @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+  codigoProduto    String  @unique // um código só pode pertencer a UM grupo
+  descricaoProduto String? // informativo, preenchido no cadastro
+
+  @@index([grupoId])
 }

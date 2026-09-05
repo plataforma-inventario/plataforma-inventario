@@ -6,6 +6,7 @@ import { CategoriaArquivo, type Prisma } from "@/generated/prisma/client";
 import { UploadSlot } from "./upload-slot";
 import { fecharCiclo } from "./actions";
 import { calcularDivergencia } from "@/lib/divergencia";
+import { getDivergenciasCodigoCruzadoPorLoja } from "@/lib/cruzamento-codigo";
 
 const formatoBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const formatoPct = (v: number) => `${v.toFixed(2).replace(".", ",")}%`;
@@ -137,7 +138,71 @@ export default async function CicloPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      {ciclo.status === "FECHADO" && <DivergenciaResumo cicloId={ciclo.id} loja={ciclo.loja} />}
+      {ciclo.status === "FECHADO" && (
+        <>
+          <DivergenciaResumo cicloId={ciclo.id} loja={ciclo.loja} />
+          <CruzamentoCodigoAlerta lojaId={ciclo.loja.id} />
+        </>
+      )}
+    </div>
+  );
+}
+
+// Item pedido pelo usuário em 2026-09-05: aviso contextual (não um relatório)
+// pra quando o cruzamento por código equivalente encontra algo envolvendo
+// esta loja - some quando não há achado, não mostra estado vazio aqui.
+async function CruzamentoCodigoAlerta({ lojaId }: { lojaId: string }) {
+  const achados = await getDivergenciasCodigoCruzadoPorLoja(lojaId);
+  if (achados.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+      <h2 className="text-sm font-medium text-amber-900">
+        Possível troca de código de produto
+      </h2>
+      <ul className="flex flex-col gap-2 text-sm text-amber-800">
+        {achados.map((d, i) => {
+          const estaLoja = d.codigoFalta.lojaId === lojaId ? d.codigoFalta : d.codigoSobra;
+          const outraLoja = d.codigoFalta.lojaId === lojaId ? d.codigoSobra : d.codigoFalta;
+          return (
+            <li key={i}>
+              {d.mesmaLoja ? (
+                <>
+                  {outraLoja.quantidade} un. do código {d.codigoSobra.codigo} (sobra) podem ser as
+                  mesmas que faltam no código {d.codigoFalta.codigo} (falta de{" "}
+                  {Math.abs(d.codigoFalta.quantidade)} un.), grupo &quot;{d.grupoDescricao}&quot;,
+                  nesta loja.
+                </>
+              ) : (
+                <>
+                  {estaLoja === d.codigoSobra ? (
+                    <>
+                      {estaLoja.quantidade} un. de sobra no código {estaLoja.codigo} nesta loja
+                      podem ser as mesmas que faltam no código {outraLoja.codigo} na loja{" "}
+                      {outraLoja.lojaPdv} — {outraLoja.lojaNome}
+                    </>
+                  ) : (
+                    <>
+                      {Math.abs(estaLoja.quantidade)} un. de falta no código {estaLoja.codigo} nesta
+                      loja podem ser as mesmas que sobram no código {outraLoja.codigo} na loja{" "}
+                      {outraLoja.lojaPdv} — {outraLoja.lojaNome}
+                    </>
+                  )}
+                  , grupo &quot;{d.grupoDescricao}&quot;.
+                </>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-xs text-amber-700">
+        Provável causa: um lançamento (transferência, ajuste ou venda) registrado sob o código
+        errado, não uma divergência real de estoque.{" "}
+        <Link href="/cruzamento/codigos-equivalentes" className="underline hover:text-amber-900">
+          Gerenciar códigos equivalentes
+        </Link>
+        .
+      </p>
     </div>
   );
 }

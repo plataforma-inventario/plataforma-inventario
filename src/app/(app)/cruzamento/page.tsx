@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getDivergenciasCruzadas } from "@/lib/cruzamento";
+import { getDivergenciasCodigoCruzado } from "@/lib/cruzamento-codigo";
 
 const ROTULO_CONFIANCA: Record<string, string> = {
   CONFIRMADA: "Confirmada",
@@ -22,7 +23,10 @@ export default async function CruzamentoPage() {
     redirect("/");
   }
 
-  const divergencias = await getDivergenciasCruzadas();
+  const [divergencias, divergenciasCodigo] = await Promise.all([
+    getDivergenciasCruzadas(),
+    getDivergenciasCodigoCruzado(),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,12 +38,20 @@ export default async function CruzamentoPage() {
             ajuste que explique — considerando todas as lojas do sistema, não só da mesma região.
           </p>
         </div>
-        <Link
-          href="/cruzamento/pendencias"
-          className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
-        >
-          Pendências de saída sem chegada
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href="/cruzamento/codigos-equivalentes"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+          >
+            Códigos equivalentes
+          </Link>
+          <Link
+            href="/cruzamento/pendencias"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+          >
+            Pendências de saída sem chegada
+          </Link>
+        </div>
       </div>
 
       {divergencias.length === 0 ? (
@@ -90,6 +102,86 @@ export default async function CruzamentoPage() {
                   <td className="px-4 py-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${COR_CONFIANCA[d.confianca]}`}>
                       {ROTULO_CONFIANCA[d.confianca]}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div>
+        <h2 className="text-lg font-medium text-brand-dark">
+          Cruzamento de códigos (mesmo produto, códigos diferentes)
+        </h2>
+        <p className="text-sm text-neutral-500">
+          Sobra num código e falta em outro, na mesma magnitude, quando os dois códigos estão
+          cadastrados como o mesmo produto físico (ver{" "}
+          <Link href="/cruzamento/codigos-equivalentes" className="hover:text-brand-dark hover:underline">
+            Códigos equivalentes
+          </Link>
+          ) — geralmente causado por um lançamento (transferência, ajuste ou venda) registrado sob
+          o código errado.
+        </p>
+      </div>
+
+      {divergenciasCodigo.length === 0 ? (
+        <p className="text-sm text-neutral-400">
+          Nenhum cruzamento de código equivalente encontrado até agora.
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-neutral-50 text-neutral-500">
+              <tr>
+                <th className="px-4 py-2 font-medium">Grupo</th>
+                <th className="px-4 py-2 font-medium">Falta em</th>
+                <th className="px-4 py-2 font-medium">Sobra em</th>
+                <th className="px-4 py-2 font-medium">Quantidade</th>
+                <th className="px-4 py-2 font-medium">Mesma loja</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {divergenciasCodigo.map((d, i) => (
+                <tr key={i}>
+                  <td className="px-4 py-2 text-neutral-900">{d.grupoDescricao}</td>
+                  <td className="px-4 py-2 text-neutral-700">
+                    <Link href={`/lojas/${d.codigoFalta.lojaId}`} className="hover:text-brand-dark hover:underline">
+                      {d.codigoFalta.lojaPdv} — {d.codigoFalta.lojaNome}
+                    </Link>{" "}
+                    <span className="text-xs text-neutral-400">
+                      (código {d.codigoFalta.codigo} — {d.codigoFalta.descricao})
+                    </span>{" "}
+                    <Link
+                      href={`/ciclos/${d.codigoFalta.cicloId}`}
+                      className="text-xs text-neutral-400 hover:text-brand-dark hover:underline"
+                    >
+                      (ver lançamento)
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2 text-neutral-700">
+                    <Link href={`/lojas/${d.codigoSobra.lojaId}`} className="hover:text-brand-dark hover:underline">
+                      {d.codigoSobra.lojaPdv} — {d.codigoSobra.lojaNome}
+                    </Link>{" "}
+                    <span className="text-xs text-neutral-400">
+                      (código {d.codigoSobra.codigo} — {d.codigoSobra.descricao})
+                    </span>{" "}
+                    <Link
+                      href={`/ciclos/${d.codigoSobra.cicloId}`}
+                      className="text-xs text-neutral-400 hover:text-brand-dark hover:underline"
+                    >
+                      (ver lançamento)
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2 text-neutral-700">{d.codigoSobra.quantidade}</td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        d.mesmaLoja ? "bg-red-50 text-red-700" : "bg-neutral-100 text-neutral-600"
+                      }`}
+                    >
+                      {d.mesmaLoja ? "Sim" : "Não"}
                     </span>
                   </td>
                 </tr>
