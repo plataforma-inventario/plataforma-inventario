@@ -7,6 +7,7 @@ import { UploadSlot } from "./upload-slot";
 import { fecharCiclo } from "./actions";
 import { calcularDivergencia } from "@/lib/divergencia";
 import { getDivergenciasCodigoCruzadoPorLoja } from "@/lib/cruzamento-codigo";
+import { ItensInventarioTabela } from "./itens-inventario-tabela";
 
 const formatoBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const formatoPct = (v: number) => `${v.toFixed(2).replace(".", ",")}%`;
@@ -256,7 +257,9 @@ async function DivergenciaResumo({ cicloId, loja }: { cicloId: string; loja: Met
           <p className="text-xl font-semibold text-neutral-900">
             {formatoBRL.format(d.divergenciaValor)}
           </p>
-          <p className="text-xs text-neutral-400">{sinal} em relação ao esperado</p>
+          <p className="text-xs text-neutral-400">
+            {sinal} em relação ao esperado — {d.totalItens} produto(s) divergente(s)
+          </p>
         </div>
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <p className="text-sm text-neutral-500">% sobre valor de estoque</p>
@@ -325,6 +328,46 @@ async function DivergenciaResumo({ cicloId, loja }: { cicloId: string; loja: Met
           )}
         </div>
       </div>
+
+      <ItensDivergentes cicloId={cicloId} />
+    </div>
+  );
+}
+
+// Pedido pelo usuário em 2026-09-05, inspirado na tela de inventário do
+// sistema da loja (Retaguarda GB): poder buscar um produto específico pelo
+// código pra ver a diferença dele, em vez de só o resumo agregado por
+// categoria acima.
+async function ItensDivergentes({ cicloId }: { cicloId: string }) {
+  const itens = await prisma.itemInventario.findMany({
+    where: { arquivo: { cicloId, categoria: "INVENTARIO" } },
+    orderBy: { codigoProduto: "asc" },
+    select: {
+      codigoProduto: true,
+      descricaoProduto: true,
+      unidade: true,
+      quantidadeSistema: true,
+      quantidadeContada: true,
+      ajuste: true,
+      valorAjuste: true,
+    },
+  });
+  if (itens.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <h2 className="text-sm font-medium text-neutral-500">Produtos divergentes ({itens.length})</h2>
+      <ItensInventarioTabela
+        itens={itens.map((i) => ({
+          codigoProduto: i.codigoProduto,
+          descricaoProduto: i.descricaoProduto,
+          unidade: i.unidade,
+          quantidadeSistema: Number(i.quantidadeSistema),
+          quantidadeContada: Number(i.quantidadeContada),
+          ajuste: Number(i.ajuste),
+          valorAjuste: Number(i.valorAjuste),
+        }))}
+      />
     </div>
   );
 }
