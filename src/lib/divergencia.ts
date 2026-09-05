@@ -10,6 +10,13 @@ export type ResultadoDivergencia = {
   receitaLiquida: number | null;
   sacolaMaterialAuxiliar: CategoriaDivergencia;
   resto: CategoriaDivergencia;
+  // Pedido pelo usuário em 2026-09-04, pra ler o resultado de forma mais
+  // direta: "quanto % da divergência total é só sacola" e "quanto sobraria
+  // de divergência se a sacola nem existisse", usando sempre o MESMO
+  // estoque total como base (não o estoque de cada categoria separado) -
+  // assim dá pra comparar direto com percentualSobreEstoque acima.
+  percentualSacolaSobreDivergenciaTotal: number | null;
+  percentualSemSacolaSobreEstoqueTotal: number | null;
 };
 
 export type CategoriaDivergencia = {
@@ -73,6 +80,14 @@ export async function calcularDivergencia(cicloId: string): Promise<ResultadoDiv
     receitaLiquida,
     sacolaMaterialAuxiliar: categoriaDivergencia(itensSacola),
     resto: categoriaDivergencia(itensResto),
+    percentualSacolaSobreDivergenciaTotal:
+      divergenciaValor !== 0
+        ? (Math.abs(somaDecimal("valorAjuste", itensSacola)) / Math.abs(divergenciaValor)) * 100
+        : null,
+    percentualSemSacolaSobreEstoqueTotal:
+      valorEstoqueTotal > 0
+        ? (Math.abs(somaDecimal("valorAjuste", itensResto)) / valorEstoqueTotal) * 100
+        : null,
   };
 }
 

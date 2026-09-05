@@ -202,6 +202,15 @@ async function DivergenciaResumo({ cicloId, loja }: { cicloId: string; loja: Met
           <p className="text-xs text-neutral-400">
             estoque contado: {formatoBRL.format(d.valorEstoqueTotal)}
           </p>
+          {d.percentualSacolaSobreDivergenciaTotal !== null && (
+            <p className="mt-1 text-xs text-neutral-500">
+              {formatoPct(d.percentualSacolaSobreDivergenciaTotal)} da divergência é sacola — sem
+              ela seria{" "}
+              {d.percentualSemSacolaSobreEstoqueTotal !== null
+                ? formatoPct(d.percentualSemSacolaSobreEstoqueTotal)
+                : "—"}
+            </p>
+          )}
         </div>
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <p className="text-sm text-neutral-500">% sobre faturamento</p>
