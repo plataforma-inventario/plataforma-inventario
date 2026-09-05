@@ -33,9 +33,13 @@ async function lojaIdsVisiveis(user: Usuario, tipoLoja?: TipoLoja) {
 }
 
 function filtroData(mes?: number, ano?: number) {
-  if (!ano) return undefined;
-  const inicio = new Date(ano, mes ? mes - 1 : 0, 1);
-  const fim = mes ? new Date(ano, mes, 1) : new Date(ano + 1, 0, 1);
+  if (!mes && !ano) return undefined;
+  // Pedido pelo usuário em 2026-09-05: escolher só o mês (sem ano) não
+  // filtrava nada, porque isso exigia "ano" preenchido - agora assume o ano
+  // atual quando só o mês é escolhido.
+  const anoEfetivo = ano ?? new Date().getFullYear();
+  const inicio = new Date(anoEfetivo, mes ? mes - 1 : 0, 1);
+  const fim = mes ? new Date(anoEfetivo, mes, 1) : new Date(anoEfetivo + 1, 0, 1);
   return { gte: inicio, lt: fim };
 }
 

@@ -39,9 +39,12 @@ function filtroPeriodo(filtros: FiltrosComparativo) {
         : {}),
     };
   }
-  if (!filtros.ano) return undefined;
-  const inicio = new Date(filtros.ano, filtros.mes ? filtros.mes - 1 : 0, 1);
-  const fim = filtros.mes ? new Date(filtros.ano, filtros.mes, 1) : new Date(filtros.ano + 1, 0, 1);
+  if (!filtros.mes && !filtros.ano) return undefined;
+  // Mesmo ajuste de relatorios.ts (2026-09-05): só mês, sem ano, não pode
+  // ser ignorado - assume o ano atual quando só o mês é escolhido.
+  const anoEfetivo = filtros.ano ?? new Date().getFullYear();
+  const inicio = new Date(anoEfetivo, filtros.mes ? filtros.mes - 1 : 0, 1);
+  const fim = filtros.mes ? new Date(anoEfetivo, filtros.mes, 1) : new Date(anoEfetivo + 1, 0, 1);
   return { gte: inicio, lt: fim };
 }
 
