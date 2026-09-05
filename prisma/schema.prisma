@@ -181,6 +181,7 @@ model User {
   ciclosCriados             Ciclo[]
   arquivosEnviados          ArquivoImportado[]
   arquivosDevolucaoEnviados ArquivoDevolucao[]
+  arquivosAvisoCreditoEnviados ArquivoAvisoCredito[]
   defeitosCriados           Defeito[]
   insucessosCriados         Insucesso[]
   logisticaReversaCriada    LogisticaReversa[]
@@ -435,6 +436,30 @@ model ArquivoDevolucao {
   defeitos Defeito[]
 }
 
+// "Aviso de Crédito" do Boticário (PDF) - avisa quando o reembolso de uma
+// devolução foi concedido, com a data e o valor por NF. Cruza com os
+// Defeitos já lançados (mesmo número de NF) pra preencher o reembolso
+// sozinho, sem o auditor digitar manualmente.
+model ArquivoAvisoCredito {
+  id           String @id @default(cuid())
+  nomeArquivo  String
+  tipoMime     String
+  hashConteudo String @unique
+  tamanhoBytes Int
+  conteudo     Bytes
+
+  uploadedByUserId String
+  uploadedBy       User   @relation(fields: [uploadedByUserId], references: [id])
+
+  statusParsing StatusParsing @default(PENDENTE)
+  resumoParsing String?
+  avisosParsing String[]      @default([])
+
+  createdAt DateTime @default(now())
+
+  defeitosAtualizados Defeito[]
+}
+
 model Defeito {
   id     String @id @default(cuid())
   lojaId String
@@ -454,6 +479,11 @@ model Defeito {
   statusReembolso          StatusReembolso @default(PENDENTE)
   valorReembolsado         Decimal         @default(0) @db.Decimal(14, 2)
   dataRecebimentoReembolso DateTime?
+
+  // Preenchido quando o reembolso foi atualizado automaticamente a partir
+  // de um Aviso de Crédito importado (em vez de digitado manualmente).
+  avisoCreditoOrigemId String?
+  avisoCreditoOrigem   ArquivoAvisoCredito? @relation(fields: [avisoCreditoOrigemId], references: [id])
 
   observacao String?
 

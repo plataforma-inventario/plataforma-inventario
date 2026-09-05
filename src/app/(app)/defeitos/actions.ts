@@ -5,7 +5,36 @@ import { prisma } from "@/lib/prisma";
 import { requireAuditor } from "@/lib/authz";
 import { registrarAlteracoes } from "@/lib/log-alteracao";
 import { importarArquivoDevolucao } from "@/lib/parsers/processar-devolucao";
+import { importarArquivoAvisoCredito } from "@/lib/parsers/processar-aviso-credito";
 import { StatusReembolso, TipoDevolucao } from "@/generated/prisma/client";
+
+export async function uploadAvisoCredito(
+  _prevState: { erro?: string; aviso?: string } | undefined,
+  formData: FormData
+): Promise<{ erro?: string; aviso?: string }> {
+  const session = await requireAuditor();
+
+  const file = formData.get("arquivo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { erro: "Selecione um arquivo." };
+  }
+
+  const lojaId = String(formData.get("lojaId") ?? "").trim() || undefined;
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const resultado = await importarArquivoAvisoCredito(
+    buffer,
+    file.name,
+    file.type || "application/pdf",
+    session.user.id,
+    lojaId
+  );
+
+  revalidatePath("/defeitos");
+  if (resultado.status === "ERRO") return { erro: resultado.mensagem };
+  if (resultado.status === "AVISO") return { aviso: resultado.mensagem };
+  return {};
+}
 
 export async function uploadDevolucao(
   _prevState: { erro?: string; aviso?: string } | undefined,

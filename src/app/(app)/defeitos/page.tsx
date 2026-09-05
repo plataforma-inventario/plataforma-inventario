@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getLojasVisiveis } from "@/lib/access";
 import { getEstatisticasInsucesso } from "@/lib/insucesso";
 import { DevolucaoUploadForm } from "./devolucao-upload-form";
+import { AvisoCreditoUploadForm } from "./aviso-credito-upload-form";
 import { InsucessoForm } from "./insucesso-form";
 import { ClassificarTipo } from "./classificar-tipo";
 import { FiltroDefeitos } from "./filtro-defeitos";
@@ -126,7 +127,12 @@ export default async function DefeitosPage({
         </div>
       </div>
 
-      {podeGerenciar && <DevolucaoUploadForm />}
+      {podeGerenciar && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <DevolucaoUploadForm />
+          <AvisoCreditoUploadForm lojas={lojas} />
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
         <table className="w-full text-left text-sm">

@@ -1,8 +1,9 @@
 import { parseCsvRelatorio, pick } from "./util";
+import { extrairTextoPdf } from "./extrair-texto-pdf";
 import { CategoriaArquivo } from "@/generated/prisma/client";
 
 export type TipoDetectado =
-  | { tipo: CategoriaArquivo | "DEVOLUCAO" | "LOGISTICA_REVERSA" }
+  | { tipo: CategoriaArquivo | "DEVOLUCAO" | "LOGISTICA_REVERSA" | "AVISO_CREDITO" }
   | { tipo: "DESCONHECIDO"; motivo: string };
 
 // CFOPs usados no relatório de logística reversa (material pós-consumo pra
@@ -18,10 +19,21 @@ const CFOPS_LOGISTICA_REVERSA = new Set(["5949", "6949"]);
  * conteúdo da coluna Operação, já que Transferência Entrada e Devolução
  * usam exatamente o mesmo cabeçalho).
  */
-export function detectarTipoArquivo(buffer: Buffer, nomeArquivo: string): TipoDetectado {
+export async function detectarTipoArquivo(buffer: Buffer, nomeArquivo: string): Promise<TipoDetectado> {
   const extensao = nomeArquivo.toLowerCase().split(".").pop();
 
-  if (extensao === "pdf") return { tipo: CategoriaArquivo.AJUSTE };
+  if (extensao === "pdf") {
+    // Ajuste e Aviso de Crédito são os dois formatos PDF conhecidos - só o
+    // conteúdo diferencia, já que a extensão é igual.
+    let texto: string;
+    try {
+      texto = await extrairTextoPdf(buffer);
+    } catch {
+      return { tipo: "DESCONHECIDO", motivo: "Não foi possível ler o PDF." };
+    }
+    if (texto.includes("Total de Créditos")) return { tipo: "AVISO_CREDITO" };
+    return { tipo: CategoriaArquivo.AJUSTE };
+  }
   if (extensao === "xls" || extensao === "xlsx") return { tipo: CategoriaArquivo.FATURAMENTO };
 
   if (extensao !== "csv") {
