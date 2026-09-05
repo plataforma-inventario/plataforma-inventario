@@ -49,6 +49,60 @@ function desenharTabela(doc: PDFKit.PDFDocument, bloco: Extract<Bloco, { tipo: "
   doc.moveDown(0.5);
 }
 
+function desenharBloco(doc: PDFKit.PDFDocument, bloco: Bloco) {
+  if (doc.y > 740 && bloco.tipo !== "h2") doc.addPage();
+
+  switch (bloco.tipo) {
+    case "h2":
+      doc.addPage();
+      doc.fontSize(15).font("Helvetica-Bold").fillColor("#00674a").text(paraPdf(bloco.texto));
+      doc.moveDown(0.5);
+      break;
+    case "h3":
+      doc.moveDown(0.3);
+      doc.fontSize(12).font("Helvetica-Bold").fillColor("#111").text(paraPdf(bloco.texto));
+      doc.moveDown(0.2);
+      break;
+    case "p":
+      doc.fontSize(10).font("Helvetica").fillColor("#333").text(paraPdf(bloco.texto), { align: "left" });
+      doc.moveDown(0.4);
+      break;
+    case "lista":
+    case "listaNumerada":
+      doc.fontSize(10).font("Helvetica").fillColor("#333");
+      bloco.itens.forEach((item, i) => {
+        const marcador = bloco.tipo === "listaNumerada" ? `${i + 1}. ` : "• ";
+        doc.text(marcador + paraPdf(item), { indent: 10 });
+      });
+      doc.moveDown(0.4);
+      break;
+    case "tabela":
+      doc.fillColor("#000");
+      desenharTabela(doc, bloco);
+      break;
+    case "aviso":
+      doc.fontSize(10).font("Helvetica-Bold").fillColor("#92620a").text("[aviso] " + paraPdf(bloco.texto));
+      doc.moveDown(0.4);
+      break;
+    case "exemplo":
+      doc.fontSize(9).font("Helvetica-Bold").fillColor("#555").text(paraPdf(bloco.titulo));
+      doc.font("Courier").fontSize(8).fillColor("#333").text(paraPdf(bloco.texto));
+      doc.moveDown(0.4);
+      break;
+    case "arquivo":
+      doc.moveDown(0.3);
+      doc
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .fillColor("#111")
+        .text(`${bloco.numero} ${paraPdf(bloco.titulo)} — ${bloco.formato}`);
+      doc.fontSize(9).font("Helvetica").fillColor("#666").text(paraPdf(bloco.resumo));
+      doc.moveDown(0.2);
+      bloco.blocos.forEach((b) => desenharBloco(doc, b));
+      break;
+  }
+}
+
 export async function GET() {
   const session = await auth();
   if (!session) return new Response("Não autenticado", { status: 401 });
@@ -70,46 +124,7 @@ export async function GET() {
   doc.moveDown(1);
 
   for (const bloco of MANUAL) {
-    if (doc.y > 740 && bloco.tipo !== "h2") doc.addPage();
-
-    switch (bloco.tipo) {
-      case "h2":
-        doc.addPage();
-        doc.fontSize(15).font("Helvetica-Bold").fillColor("#00674a").text(paraPdf(bloco.texto));
-        doc.moveDown(0.5);
-        break;
-      case "h3":
-        doc.moveDown(0.3);
-        doc.fontSize(12).font("Helvetica-Bold").fillColor("#111").text(paraPdf(bloco.texto));
-        doc.moveDown(0.2);
-        break;
-      case "p":
-        doc.fontSize(10).font("Helvetica").fillColor("#333").text(paraPdf(bloco.texto), { align: "left" });
-        doc.moveDown(0.4);
-        break;
-      case "lista":
-      case "listaNumerada":
-        doc.fontSize(10).font("Helvetica").fillColor("#333");
-        bloco.itens.forEach((item, i) => {
-          const marcador = bloco.tipo === "listaNumerada" ? `${i + 1}. ` : "• ";
-          doc.text(marcador + paraPdf(item), { indent: 10 });
-        });
-        doc.moveDown(0.4);
-        break;
-      case "tabela":
-        doc.fillColor("#000");
-        desenharTabela(doc, bloco);
-        break;
-      case "aviso":
-        doc.fontSize(10).font("Helvetica-Bold").fillColor("#92620a").text("[aviso] " + paraPdf(bloco.texto));
-        doc.moveDown(0.4);
-        break;
-      case "exemplo":
-        doc.fontSize(9).font("Helvetica-Bold").fillColor("#555").text(paraPdf(bloco.titulo));
-        doc.font("Courier").fontSize(8).fillColor("#333").text(paraPdf(bloco.texto));
-        doc.moveDown(0.4);
-        break;
-    }
+    desenharBloco(doc, bloco);
   }
 
   doc.end();

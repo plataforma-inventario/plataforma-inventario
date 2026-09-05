@@ -12,7 +12,19 @@ export type Bloco =
   | { tipo: "listaNumerada"; itens: string[] }
   | { tipo: "tabela"; cabecalho: string[]; linhas: string[][] }
   | { tipo: "aviso"; texto: string }
-  | { tipo: "exemplo"; titulo: string; texto: string };
+  | { tipo: "exemplo"; titulo: string; texto: string }
+  // Um "cartão" recolhível por tipo de arquivo (seção 2) - o HTML renderiza
+  // como <details> (fechado por padrão, pra não virar um paredão de texto);
+  // o PDF renderiza tudo aberto (impresso não tem "clicar pra expandir").
+  | {
+      tipo: "arquivo";
+      id: string;
+      numero: string;
+      titulo: string;
+      formato: "CSV" | "PDF" | "XLS/XLSX";
+      resumo: string;
+      blocos: Bloco[];
+    };
 
 export const SECOES_TOC: { id: string; label: string }[] = [
   { id: "visao-geral", label: "1. Visão geral do fluxo" },
@@ -59,175 +71,247 @@ export const MANUAL: Bloco[] = [
   {
     tipo: "p",
     texto:
-      "Todos os arquivos abaixo são relatórios exportados direto do sistema da loja (RetaguardaGB) ou do Portal/Extranet do Grupo Boticário — ninguém digita esses arquivos na mão. O trabalho da pessoa que lança é só: exportar o relatório certo, do período certo, da loja certa, e soltar no lugar certo da plataforma. Não abra o CSV no Excel pra “arrumar” e salvar de novo antes de enviar — isso corrompe a acentuação (ver seção 5).",
+      "Todos os arquivos abaixo são relatórios exportados direto do sistema da loja (RetaguardaGB) ou do Portal/Extranet do Grupo Boticário — ninguém digita esses arquivos na mão. O trabalho da pessoa que lança é só: exportar o relatório certo, do período certo, da loja certa, e soltar no lugar certo da plataforma. Não abra o CSV no Excel pra “arrumar” e salvar de novo antes de enviar — isso corrompe a acentuação (ver seção 6). Clique em cada card abaixo pra abrir os detalhes.",
   },
 
-  { tipo: "h3", texto: "2.1 Resultado do inventário" },
-  { tipo: "tabela", cabecalho: ["", ""], linhas: [
-    ["Formato aceito", "CSV"],
-    ["Vem de", "Relatório de inventário do sistema da loja (contagem Congelado x Digitado)"],
-    ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Resultado do inventário\", ou Central de Importação"],
-  ] },
-  { tipo: "p", texto: "Colunas que o sistema lê desse relatório:" },
-  { tipo: "tabela", cabecalho: ["Coluna no arquivo", "O que é"], linhas: [
-    ["Código do Produto", "obrigatório — linha sem isso é ignorada"],
-    ["Descrição do Produto", "nome do item"],
-    ["Emb", "unidade de medida"],
-    ["Congelado", "quantidade que o sistema esperava (estoque teórico)"],
-    ["Digitado", "quantidade contada fisicamente"],
-    ["Ajuste", "diferença entre contado e esperado"],
-    ["Custo", "custo unitário"],
-    ["Valor de Ajuste(R$)", "valor da divergência daquele item"],
-    ["Valor de Estoque(R$)", "valor em estoque daquele item"],
-    ["Loja", "usado pra identificar a loja automaticamente (Central de Importação)"],
-    ["Tipo", "Cíclico ou Completo — informativo; o tipo que vale é o escolhido ao criar o lançamento"],
-  ] },
-  { tipo: "exemplo", titulo: "Exemplo de uma linha", texto: "Código do Produto;Descrição do Produto;Emb;Congelado;Digitado;Ajuste;Custo;Valor de Ajuste(R$);Valor de Estoque(R$);Loja\n52040;REF BOTI BABY LOC HID CPO 350ml;UN;12;10;-2;34,90;-69,80;349,00;11101 - Pruden" },
-
-  { tipo: "h3", texto: "2.2 Notas fiscais de transferência de saída" },
-  { tipo: "tabela", cabecalho: ["", ""], linhas: [
-    ["Formato aceito", "CSV"],
-    ["Vem de", "Relatório de \"notas fiscais de venda\" do sistema da loja, filtrado por CFOP 5152 (transferência entre lojas)"],
-    ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Notas fiscais de transferência de saída\", ou Central de Importação"],
-  ] },
-  { tipo: "tabela", cabecalho: ["Coluna no arquivo", "O que é"], linhas: [
-    ["Número do Documento", "número da NF — obrigatório"],
-    ["Data De Emissão", "obrigatório"],
-    ["Cliente", "loja destino, no formato \"código - nome\""],
-    ["Produto", "no formato \"código - descrição\""],
-    ["Unidade de medida", "-"],
-    ["Quantidade de itens", "-"],
-    ["Valor unitário / Valor total do item", "-"],
-    ["CFOP", "precisa ser 5152 — se for 5949/6949 é Logística Reversa, não este"],
-    ["Loja", "usado pra identificar a loja automaticamente (Central de Importação)"],
-  ] },
   {
-    tipo: "aviso",
-    texto:
-      "Esse é o MESMO relatório usado em Logística Reversa (seção 2.9) — só o CFOP dentro do arquivo diferencia. A Central de Importação já separa sozinha; se for lançar manualmente pela tela do lançamento, confira que as notas ali são mesmo CFOP 5152.",
+    tipo: "arquivo",
+    id: "arquivo-inventario",
+    numero: "2.1",
+    titulo: "Resultado do inventário",
+    formato: "CSV",
+    resumo: "Contagem física da loja (Congelado x Digitado)",
+    blocos: [
+      { tipo: "tabela", cabecalho: ["", ""], linhas: [
+        ["Vem de", "Relatório de inventário do sistema da loja (contagem Congelado x Digitado)"],
+        ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Resultado do inventário\", ou Central de Importação"],
+      ] },
+      { tipo: "p", texto: "Colunas que o sistema lê desse relatório:" },
+      { tipo: "tabela", cabecalho: ["Coluna no arquivo", "O que é"], linhas: [
+        ["Código do Produto", "obrigatório — linha sem isso é ignorada"],
+        ["Descrição do Produto", "nome do item"],
+        ["Emb", "unidade de medida"],
+        ["Congelado", "quantidade que o sistema esperava (estoque teórico)"],
+        ["Digitado", "quantidade contada fisicamente"],
+        ["Ajuste", "diferença entre contado e esperado"],
+        ["Custo", "custo unitário"],
+        ["Valor de Ajuste(R$)", "valor da divergência daquele item"],
+        ["Valor de Estoque(R$)", "valor em estoque daquele item"],
+        ["Loja", "usado pra identificar a loja automaticamente (Central de Importação)"],
+        ["Tipo", "Cíclico ou Completo — informativo; o tipo que vale é o escolhido ao criar o lançamento"],
+      ] },
+      { tipo: "exemplo", titulo: "Exemplo de uma linha", texto: "Código do Produto;Descrição do Produto;Emb;Congelado;Digitado;Ajuste;Custo;Valor de Ajuste(R$);Valor de Estoque(R$);Loja\n52040;REF BOTI BABY LOC HID CPO 350ml;UN;12;10;-2;34,90;-69,80;349,00;11101 - Pruden" },
+    ],
   },
 
-  { tipo: "h3", texto: "2.3 Notas fiscais de transferência de entrada" },
-  { tipo: "tabela", cabecalho: ["", ""], linhas: [
-    ["Formato aceito", "CSV"],
-    ["Vem de", "Relatório de \"notas fiscais de compra\" do sistema da loja, com Operação = \"ENTRADA POR TRANSFERÊNCIA\""],
-    ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Notas fiscais de transferência de entrada\", ou Central de Importação"],
-  ] },
-  { tipo: "tabela", cabecalho: ["Coluna no arquivo", "O que é"], linhas: [
-    ["Número do Documento", "número da NF — obrigatório"],
-    ["Data De Emissão", "obrigatório"],
-    ["Código do Fornecedor / Nome do Fornecedor", "loja de origem"],
-    ["Código do produto / Descrição Produto", "-"],
-    ["Unidade de medida / Quantidade de itens", "-"],
-    ["Valor unitário / Valor total do item", "-"],
-    ["Código da Loja", "usado pra identificar a loja automaticamente"],
-    ["Operação", "precisa ser \"ENTRADA POR TRANSFERÊNCIA\" — se for \"DEVOLUÇÃO DE COMPRA\" é Defeito, não este"],
-  ] },
   {
-    tipo: "aviso",
-    texto:
-      "Esse é o MESMO relatório usado em Defeitos (seção 2.7) — só a coluna Operação diferencia. A Central de Importação já separa sozinha pelo conteúdo dessa coluna.",
+    tipo: "arquivo",
+    id: "arquivo-transferencia-saida",
+    numero: "2.2",
+    titulo: "Notas fiscais de transferência de saída",
+    formato: "CSV",
+    resumo: "NFs de saída pra outra loja (CFOP 5152)",
+    blocos: [
+      { tipo: "tabela", cabecalho: ["", ""], linhas: [
+        ["Vem de", "Relatório de \"notas fiscais de venda\" do sistema da loja, filtrado por CFOP 5152 (transferência entre lojas)"],
+        ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Notas fiscais de transferência de saída\", ou Central de Importação"],
+      ] },
+      { tipo: "tabela", cabecalho: ["Coluna no arquivo", "O que é"], linhas: [
+        ["Número do Documento", "número da NF — obrigatório"],
+        ["Data De Emissão", "obrigatório"],
+        ["Cliente", "loja destino, no formato \"código - nome\""],
+        ["Produto", "no formato \"código - descrição\""],
+        ["Unidade de medida", "-"],
+        ["Quantidade de itens", "-"],
+        ["Valor unitário / Valor total do item", "-"],
+        ["CFOP", "precisa ser 5152 — se for 5949/6949 é Logística Reversa, não este"],
+        ["Loja", "usado pra identificar a loja automaticamente (Central de Importação)"],
+      ] },
+      {
+        tipo: "aviso",
+        texto:
+          "Esse é o MESMO relatório usado em Logística Reversa (seção 2.9) — só o CFOP dentro do arquivo diferencia. A Central de Importação já separa sozinha; se for lançar manualmente pela tela do lançamento, confira que as notas ali são mesmo CFOP 5152.",
+      },
+    ],
   },
 
-  { tipo: "h3", texto: "2.4 Ajustes de entrada e de saída (mesmo CNPJ diferente)" },
   {
-    tipo: "aviso",
-    texto:
-      "Entrada e saída de ajuste são UM SÓ arquivo/upload, não dois. O relatório do sistema já traz as duas direções misturadas (coluna interna \"Tipo Ajuste\": 1 = entrada, 2 = saída) e a plataforma separa sozinha.",
-  },
-  { tipo: "tabela", cabecalho: ["", ""], linhas: [
-    ["Formato aceito", "PDF"],
-    ["Vem de", "Relatório \"Ajuste de Estoque - Analítico\" do sistema da loja, exportado filtrado por UMA loja e pelo período exato do lançamento"],
-    ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Ajustes de estoque (entrada e saída)\", ou Central de Importação"],
-  ] },
-  {
-    tipo: "p",
-    texto:
-      "Ao exportar, confira no próprio relatório o filtro de \"Lojas\" (deve ser só a loja do lançamento) e o filtro de \"Data Movimentação\" (deve cobrir exatamente o período do lançamento) — o sistema lê essas informações direto do cabeçalho do PDF.",
-  },
-
-  { tipo: "h3", texto: "2.5 Requisições" },
-  { tipo: "tabela", cabecalho: ["", ""], linhas: [
-    ["Formato aceito", "CSV"],
-    ["Vem de", "Relatório de requisições do sistema da loja (demonstrador, brinde, vencido, premiação, perda/roubo, material auxiliar)"],
-    ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Requisições do período\" — ver aviso abaixo sobre a Central de Importação"],
-  ] },
-  { tipo: "tabela", cabecalho: ["Coluna no arquivo", "O que é"], linhas: [
-    ["Número", "número da requisição — obrigatório"],
-    ["Data Requisição", "obrigatório"],
-    ["Produto", "no formato \"código - descrição\""],
-    ["Motivo", "texto livre (ex.: \"1 - DEMONSTRADORES\", \"9 - PREMIAÇÃO\") — o sistema reconhece automaticamente as palavras DEMONSTRADOR, BRINDE, PERDA, ROUBO e PREMI dentro desse texto pras estatísticas"],
-    ["Setor / Solicitante", "opcionais"],
-    ["Unidade de Medida / Quantidade Atendida / Custo Total", "-"],
-    ["Observação", "opcional — na premiação, é aqui que vem o nome/CPF da funcionária (ver Premiações no menu Requisições)"],
-  ] },
-  {
-    tipo: "aviso",
-    texto:
-      "Esse relatório NUNCA traz o PDV da loja (regra do próprio sistema da loja, não é falha) — por isso, se você soltar SÓ o arquivo de Requisição na Central de Importação, ela não vai saber de qual loja é e vai pedir pra enviar pela tela do lançamento. Se você soltar a Requisição JUNTO com os outros arquivos do mesmo lote (inventário, transferências, ajuste, faturamento) na Central de Importação, o sistema infere a loja sozinho a partir dos outros arquivos.",
+    tipo: "arquivo",
+    id: "arquivo-transferencia-entrada",
+    numero: "2.3",
+    titulo: "Notas fiscais de transferência de entrada",
+    formato: "CSV",
+    resumo: "NFs de entrada vindas de outra loja",
+    blocos: [
+      { tipo: "tabela", cabecalho: ["", ""], linhas: [
+        ["Vem de", "Relatório de \"notas fiscais de compra\" do sistema da loja, com Operação = \"ENTRADA POR TRANSFERÊNCIA\""],
+        ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Notas fiscais de transferência de entrada\", ou Central de Importação"],
+      ] },
+      { tipo: "tabela", cabecalho: ["Coluna no arquivo", "O que é"], linhas: [
+        ["Número do Documento", "número da NF — obrigatório"],
+        ["Data De Emissão", "obrigatório"],
+        ["Código do Fornecedor / Nome do Fornecedor", "loja de origem"],
+        ["Código do produto / Descrição Produto", "-"],
+        ["Unidade de medida / Quantidade de itens", "-"],
+        ["Valor unitário / Valor total do item", "-"],
+        ["Código da Loja", "usado pra identificar a loja automaticamente"],
+        ["Operação", "precisa ser \"ENTRADA POR TRANSFERÊNCIA\" — se for \"DEVOLUÇÃO DE COMPRA\" é Defeito, não este"],
+      ] },
+      {
+        tipo: "aviso",
+        texto:
+          "Esse é o MESMO relatório usado em Defeitos (seção 2.7) — só a coluna Operação diferencia. A Central de Importação já separa sozinha pelo conteúdo dessa coluna.",
+      },
+    ],
   },
 
-  { tipo: "h3", texto: "2.6 Faturamento do período" },
-  { tipo: "tabela", cabecalho: ["", ""], linhas: [
-    ["Formato aceito", "XLS/XLSX"],
-    ["Vem de", "Relatório de faturamento (Receita Líquida) do sistema da loja"],
-    ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Faturamento do período\", ou Central de Importação"],
-  ] },
   {
-    tipo: "p",
-    texto:
-      "A planilha tem duas abas: uma com \"Relat\" no nome (os dados — o sistema soma o valor de cada linha de período que tiver rótulo na coluna B e valor na coluna C, ignorando as linhas de total) e outra com \"Parâmetro\"/\"Parametro\" no nome (só usada pra identificar a loja pelo PDV, numa linha que começa com \"Lojas\"). Como essa leitura é pela posição das colunas (não pelo nome), não reorganize ou reformate a planilha antes de enviar — envie exatamente como o sistema exportou.",
+    tipo: "arquivo",
+    id: "arquivo-ajuste",
+    numero: "2.4",
+    titulo: "Ajustes de entrada e de saída (mesmo CNPJ diferente)",
+    formato: "PDF",
+    resumo: "Movimentação entre CNPJs diferentes — entrada e saída no mesmo arquivo",
+    blocos: [
+      {
+        tipo: "aviso",
+        texto:
+          "Entrada e saída de ajuste são UM SÓ arquivo/upload, não dois. O relatório do sistema já traz as duas direções misturadas (coluna interna \"Tipo Ajuste\": 1 = entrada, 2 = saída) e a plataforma separa sozinha.",
+      },
+      { tipo: "tabela", cabecalho: ["", ""], linhas: [
+        ["Vem de", "Relatório \"Ajuste de Estoque - Analítico\" do sistema da loja, exportado filtrado por UMA loja e pelo período exato do lançamento"],
+        ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Ajustes de estoque (entrada e saída)\", ou Central de Importação"],
+      ] },
+      {
+        tipo: "p",
+        texto:
+          "Ao exportar, confira no próprio relatório o filtro de \"Lojas\" (deve ser só a loja do lançamento) e o filtro de \"Data Movimentação\" (deve cobrir exatamente o período do lançamento) — o sistema lê essas informações direto do cabeçalho do PDF.",
+      },
+    ],
   },
 
-  { tipo: "h3", texto: "2.7 Notas fiscais de defeito" },
-  { tipo: "tabela", cabecalho: ["", ""], linhas: [
-    ["Formato aceito", "CSV"],
-    ["Vem de", "Mesmo relatório de \"notas fiscais de compra\" da seção 2.3, com Operação = \"DEVOLUÇÃO DE COMPRA\""],
-    ["Onde fazer upload", "Aba \"Defeitos\" (menu), quadro \"Relatório de devoluções (NF)\" — não está ligado a nenhum lançamento/período, pode enviar a qualquer momento"],
-  ] },
   {
-    tipo: "p",
-    texto:
-      "Colunas: Número do Documento, Código da Loja, Nome do Fornecedor, Data De Emissão, Valor Total (valor da NF inteira — vem repetido em toda linha do arquivo, o sistema já sabe que não é pra somar), Código do produto, Descrição Produto, Unidade de medida, Quantidade de itens, Valor total do item.",
-  },
-  {
-    tipo: "p",
-    texto:
-      "Depois de lançado, classifique cada NF na própria tabela como \"Defeito\" ou \"Falta de mercadoria\" (dropdown na coluna Tipo) — isso não vem no arquivo, precisa ser feito manualmente.",
-  },
-
-  { tipo: "h3", texto: "2.8 Aviso de Crédito (registra o reembolso do defeito sozinho)" },
-  { tipo: "tabela", cabecalho: ["", ""], linhas: [
-    ["Formato aceito", "PDF"],
-    ["Vem de", "Portal/Extranet do Grupo Boticário — o aviso de que o reembolso de uma ou mais NFs de devolução foi concedido"],
-    ["Onde fazer upload", "Aba \"Defeitos\" (menu), quadro \"Aviso de Crédito (PDF)\", ao lado do upload das notas de devolução — também não depende de lançamento/período"],
-  ] },
-  {
-    tipo: "p",
-    texto:
-      "O sistema lê direto do PDF: a data do aviso (linha \"dd/mm/aaaa\" no topo) e, pra cada linha de crédito (formato \"000000439-001 R$ 9,00 DEVOLUÇÃO DE MERCADORIA\"), o número da NF (sem os zeros à esquerda e sem o \"-001\" do fim — \"000000439-001\" vira \"439\") e o valor. Linhas com outro motivo (ex.: \"Lçto G/L Manual\") são ignoradas de propósito, só interessa \"DEVOLUÇÃO DE MERCADORIA\".",
-  },
-  {
-    tipo: "p",
-    texto:
-      "Pra cada NF do PDF, o sistema procura um Defeito já lançado (seção 2.7) com o mesmo número de NF e preenche sozinho o valor reembolsado (somando se já tinha um reembolso parcial antes), a data e o status (Integral quando o total reembolsado atinge o valor enviado, Parcial caso contrário). Se a mesma NF existir em Defeitos de mais de uma loja, o sistema não arrisca adivinhar — avisa e ignora; nesse caso, reenvie o mesmo PDF escolhendo a loja certa no campo ao lado do botão de envio (em vez de \"Cruzar em todas as lojas\").",
-  },
-  {
-    tipo: "p",
-    texto:
-      "O reembolso também pode ser editado manualmente a qualquer momento, direto na tabela de Defeitos: mude Status/Valor Reembolsado/Data na linha e clique Salvar — útil quando não há (ou ainda não chegou) o PDF do Aviso de Crédito daquele período.",
+    tipo: "arquivo",
+    id: "arquivo-requisicoes",
+    numero: "2.5",
+    titulo: "Requisições",
+    formato: "CSV",
+    resumo: "Demonstrador, brinde, vencido, premiação, perda/roubo, material auxiliar",
+    blocos: [
+      { tipo: "tabela", cabecalho: ["", ""], linhas: [
+        ["Vem de", "Relatório de requisições do sistema da loja (demonstrador, brinde, vencido, premiação, perda/roubo, material auxiliar)"],
+        ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Requisições do período\" — ver aviso abaixo sobre a Central de Importação"],
+      ] },
+      { tipo: "tabela", cabecalho: ["Coluna no arquivo", "O que é"], linhas: [
+        ["Número", "número da requisição — obrigatório"],
+        ["Data Requisição", "obrigatório"],
+        ["Produto", "no formato \"código - descrição\""],
+        ["Motivo", "texto livre (ex.: \"1 - DEMONSTRADORES\", \"9 - PREMIAÇÃO\") — o sistema reconhece automaticamente as palavras DEMONSTRADOR, BRINDE, PERDA, ROUBO e PREMI dentro desse texto pras estatísticas"],
+        ["Setor / Solicitante", "opcionais"],
+        ["Unidade de Medida / Quantidade Atendida / Custo Total", "-"],
+        ["Observação", "opcional — na premiação, é aqui que vem o nome/CPF da funcionária (ver Premiações no menu Requisições)"],
+      ] },
+      {
+        tipo: "aviso",
+        texto:
+          "Esse relatório NUNCA traz o PDV da loja (regra do próprio sistema da loja, não é falha) — por isso, se você soltar SÓ o arquivo de Requisição na Central de Importação, ela não vai saber de qual loja é e vai pedir pra enviar pela tela do lançamento. Se você soltar a Requisição JUNTO com os outros arquivos do mesmo lote (inventário, transferências, ajuste, faturamento) na Central de Importação, o sistema infere a loja sozinho a partir dos outros arquivos.",
+      },
+    ],
   },
 
-  { tipo: "h3", texto: "2.9 Logística reversa" },
-  { tipo: "tabela", cabecalho: ["", ""], linhas: [
-    ["Formato aceito", "CSV"],
-    ["Vem de", "Mesmo relatório de \"notas fiscais de venda\" da seção 2.2, filtrado por CFOP 5949/6949 (material pós-consumo pra reciclagem)"],
-    ["Onde fazer upload", "Aba \"Logística Reversa\" (menu)"],
-  ] },
   {
-    tipo: "aviso",
-    texto:
-      "Diferente de todos os outros: chega UMA VEZ POR MÊS, com TODAS as lojas juntas no mesmo arquivo (não é por loja/ciclo). Colunas: Documento, Loja (de qual loja é cada linha), Emissão, Valor (valor da NF inteira, repetido — o sistema já trata certo).",
+    tipo: "arquivo",
+    id: "arquivo-faturamento",
+    numero: "2.6",
+    titulo: "Faturamento do período",
+    formato: "XLS/XLSX",
+    resumo: "Receita líquida do período",
+    blocos: [
+      { tipo: "tabela", cabecalho: ["", ""], linhas: [
+        ["Vem de", "Relatório de faturamento (Receita Líquida) do sistema da loja"],
+        ["Onde fazer upload", "Tela do lançamento da loja, quadro \"Faturamento do período\", ou Central de Importação"],
+      ] },
+      {
+        tipo: "aviso",
+        texto:
+          "A planilha tem duas abas: uma com \"Relat\" no nome (os dados — o sistema soma o valor de cada linha de período que tiver rótulo na coluna B e valor na coluna C, ignorando as linhas de total) e outra com \"Parâmetro\"/\"Parametro\" no nome (só usada pra identificar a loja pelo PDV, numa linha que começa com \"Lojas\"). Como essa leitura é pela posição das colunas (não pelo nome), não reorganize ou reformate a planilha antes de enviar — envie exatamente como o sistema exportou.",
+      },
+    ],
+  },
+
+  {
+    tipo: "arquivo",
+    id: "arquivo-defeitos",
+    numero: "2.7",
+    titulo: "Notas fiscais de defeito",
+    formato: "CSV",
+    resumo: "NFs de devolução (defeito ou falta de mercadoria)",
+    blocos: [
+      { tipo: "tabela", cabecalho: ["", ""], linhas: [
+        ["Vem de", "Mesmo relatório de \"notas fiscais de compra\" da seção 2.3, com Operação = \"DEVOLUÇÃO DE COMPRA\""],
+        ["Onde fazer upload", "Aba \"Defeitos\" (menu), quadro \"Relatório de devoluções (NF)\" — não está ligado a nenhum lançamento/período, pode enviar a qualquer momento"],
+      ] },
+      {
+        tipo: "p",
+        texto:
+          "Colunas: Número do Documento, Código da Loja, Nome do Fornecedor, Data De Emissão, Valor Total (valor da NF inteira — vem repetido em toda linha do arquivo, o sistema já sabe que não é pra somar), Código do produto, Descrição Produto, Unidade de medida, Quantidade de itens, Valor total do item.",
+      },
+      {
+        tipo: "p",
+        texto:
+          "Depois de lançado, classifique cada NF na própria tabela como \"Defeito\" ou \"Falta de mercadoria\" (dropdown na coluna Tipo) — isso não vem no arquivo, precisa ser feito manualmente.",
+      },
+    ],
+  },
+
+  {
+    tipo: "arquivo",
+    id: "arquivo-aviso-credito",
+    numero: "2.8",
+    titulo: "Aviso de Crédito",
+    formato: "PDF",
+    resumo: "Registra o reembolso do defeito sozinho",
+    blocos: [
+      { tipo: "tabela", cabecalho: ["", ""], linhas: [
+        ["Vem de", "Portal/Extranet do Grupo Boticário — o aviso de que o reembolso de uma ou mais NFs de devolução foi concedido"],
+        ["Onde fazer upload", "Aba \"Defeitos\" (menu), quadro \"Aviso de Crédito (PDF)\", ao lado do upload das notas de devolução — também não depende de lançamento/período"],
+      ] },
+      {
+        tipo: "p",
+        texto:
+          "O sistema lê direto do PDF: a data do aviso (linha \"dd/mm/aaaa\" no topo) e, pra cada linha de crédito (formato \"000000439-001 R$ 9,00 DEVOLUÇÃO DE MERCADORIA\"), o número da NF (sem os zeros à esquerda e sem o \"-001\" do fim — \"000000439-001\" vira \"439\") e o valor. Linhas com outro motivo (ex.: \"Lçto G/L Manual\") são ignoradas de propósito, só interessa \"DEVOLUÇÃO DE MERCADORIA\".",
+      },
+      {
+        tipo: "p",
+        texto:
+          "Pra cada NF do PDF, o sistema procura um Defeito já lançado (seção 2.7) com o mesmo número de NF e preenche sozinho o valor reembolsado (somando se já tinha um reembolso parcial antes), a data e o status (Integral quando o total reembolsado atinge o valor enviado, Parcial caso contrário). Se a mesma NF existir em Defeitos de mais de uma loja, o sistema não arrisca adivinhar — avisa e ignora; nesse caso, reenvie o mesmo PDF escolhendo a loja certa no campo ao lado do botão de envio (em vez de \"Cruzar em todas as lojas\").",
+      },
+      {
+        tipo: "p",
+        texto:
+          "O reembolso também pode ser editado manualmente a qualquer momento, direto na tabela de Defeitos: mude Status/Valor Reembolsado/Data na linha e clique Salvar — útil quando não há (ou ainda não chegou) o PDF do Aviso de Crédito daquele período.",
+      },
+    ],
+  },
+
+  {
+    tipo: "arquivo",
+    id: "arquivo-logistica-reversa",
+    numero: "2.9",
+    titulo: "Logística reversa",
+    formato: "CSV",
+    resumo: "Volume mensal de reciclagem, todas as lojas juntas",
+    blocos: [
+      { tipo: "tabela", cabecalho: ["", ""], linhas: [
+        ["Vem de", "Mesmo relatório de \"notas fiscais de venda\" da seção 2.2, filtrado por CFOP 5949/6949 (material pós-consumo pra reciclagem)"],
+        ["Onde fazer upload", "Aba \"Logística Reversa\" (menu)"],
+      ] },
+      {
+        tipo: "aviso",
+        texto:
+          "Diferente de todos os outros: chega UMA VEZ POR MÊS, com TODAS as lojas juntas no mesmo arquivo (não é por loja/ciclo). Colunas: Documento, Loja (de qual loja é cada linha), Emissão, Valor (valor da NF inteira, repetido — o sistema já trata certo).",
+      },
+    ],
   },
 
   // ---------------------------------------------------------------------
