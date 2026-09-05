@@ -33,8 +33,12 @@ export async function getRankingLojas(
   user: { id: string; perfil: PerfilAcesso },
   criterioOrdenacao: "percentual" | "valor" = "percentual"
 ): Promise<LinhaRanking[]> {
+  // Item pedido pelo usuário em 2026-09-05: o Centro de Distribuição (tipoLoja
+  // LOGISTICA) também fecha inventário/defeito/requisição normalmente (só não
+  // tem requisição de demonstrador) - entra no ranking igual às lojas de
+  // varejo/revenda, sem filtro de tipo.
   const lojas = await prisma.loja.findMany({
-    where: { ativa: true, tipoLoja: { in: ["VAREJO", "REVENDA"] }, ...lojasVisiveisWhere(user) },
+    where: { ativa: true, ...lojasVisiveisWhere(user) },
     include: { regiao: true },
   });
 

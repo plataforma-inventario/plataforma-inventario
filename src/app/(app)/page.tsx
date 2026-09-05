@@ -69,7 +69,10 @@ export default async function Home() {
   const ehGerente = user.perfil === "GERENTE_VAREJO" || user.perfil === "GERENTE_REVENDA";
 
   const lojas = await getLojasVisiveis(user);
-  const lojasElegiveis = lojas.filter((l) => l.ativa && (l.tipoLoja === "VAREJO" || l.tipoLoja === "REVENDA"));
+  // Centro de Distribuição (tipoLoja LOGISTICA) fecha inventário/defeito/
+  // requisição normalmente (só não tem requisição de demonstrador) - conta
+  // junto com varejo/revenda (ver mesmo ajuste em ranking.ts, 2026-09-05).
+  const lojasElegiveis = lojas.filter((l) => l.ativa);
 
   const linhasRanking = await getRankingLojas(user);
   const semDadosSuficientes = linhasRanking.length === 0;

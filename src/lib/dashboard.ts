@@ -27,8 +27,11 @@ export type PontoEvolucaoGrupo = {
  * comparação, ver comentário em ranking.ts).
  */
 export async function getEvolucaoDivergenciaGrupo(user: Usuario): Promise<PontoEvolucaoGrupo[]> {
+  // Centro de Distribuição (tipoLoja LOGISTICA) fecha inventário normalmente,
+  // então entra na evolução do grupo igual às lojas de varejo/revenda (ver
+  // mesmo ajuste em ranking.ts, 2026-09-05).
   const lojas = await prisma.loja.findMany({
-    where: { ativa: true, tipoLoja: { in: ["VAREJO", "REVENDA"] }, ...lojasVisiveisWhere(user) },
+    where: { ativa: true, ...lojasVisiveisWhere(user) },
     select: { id: true },
   });
   if (lojas.length === 0) return [];
