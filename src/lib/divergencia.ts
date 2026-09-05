@@ -8,8 +8,18 @@ export type ResultadoDivergencia = {
   percentualSobreEstoque: number | null;
   percentualSobreFaturamento: number | null; // null se não houver Faturamento lido
   receitaLiquida: number | null;
-  sacolaMaterialAuxiliar: { divergenciaValor: number; totalItens: number };
-  resto: { divergenciaValor: number; totalItens: number };
+  sacolaMaterialAuxiliar: CategoriaDivergencia;
+  resto: CategoriaDivergencia;
+};
+
+export type CategoriaDivergencia = {
+  divergenciaValor: number;
+  valorEstoque: number;
+  // % dentro da própria categoria (ex: divergência de sacola sobre o valor
+  // de estoque de sacola contado) - usado contra o teto por categoria
+  // (item pedido pelo usuário em 2026-09-04, meta separada com/sem sacola).
+  percentualSobreEstoque: number | null;
+  totalItens: number;
 };
 
 /**
@@ -40,6 +50,18 @@ export async function calcularDivergencia(cicloId: string): Promise<ResultadoDiv
   const valorEstoqueTotal = somaDecimal("valorEstoque", itens);
   const receitaLiquida = faturamento ? Number(faturamento.receitaLiquida) : null;
 
+  const categoriaDivergencia = (lista: typeof itens): CategoriaDivergencia => {
+    const divergenciaValorCategoria = somaDecimal("valorAjuste", lista);
+    const valorEstoqueCategoria = somaDecimal("valorEstoque", lista);
+    return {
+      divergenciaValor: divergenciaValorCategoria,
+      valorEstoque: valorEstoqueCategoria,
+      percentualSobreEstoque:
+        valorEstoqueCategoria > 0 ? (Math.abs(divergenciaValorCategoria) / valorEstoqueCategoria) * 100 : null,
+      totalItens: lista.length,
+    };
+  };
+
   return {
     totalItens: itens.length,
     divergenciaValor,
@@ -49,14 +71,8 @@ export async function calcularDivergencia(cicloId: string): Promise<ResultadoDiv
     percentualSobreFaturamento:
       receitaLiquida && receitaLiquida > 0 ? (Math.abs(divergenciaValor) / receitaLiquida) * 100 : null,
     receitaLiquida,
-    sacolaMaterialAuxiliar: {
-      divergenciaValor: somaDecimal("valorAjuste", itensSacola),
-      totalItens: itensSacola.length,
-    },
-    resto: {
-      divergenciaValor: somaDecimal("valorAjuste", itensResto),
-      totalItens: itensResto.length,
-    },
+    sacolaMaterialAuxiliar: categoriaDivergencia(itensSacola),
+    resto: categoriaDivergencia(itensResto),
   };
 }
 

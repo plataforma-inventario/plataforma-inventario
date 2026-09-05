@@ -136,6 +136,15 @@ model Loja {
   metaDivergenciaPercentual Decimal? @db.Decimal(5, 2)
   metaDivergenciaValor      Decimal? @db.Decimal(14, 2)
 
+  // Pedido pelo usuário em 2026-09-04: teto separado por categoria (com
+  // sacola/material auxiliar vs. sem sacola), já que os dois têm um
+  // comportamento bem diferente - a auditoria vai definir esses tetos por
+  // PDV. Null = sem teto definido ainda pra essa categoria.
+  metaSacolaPercentual Decimal? @db.Decimal(5, 2)
+  metaSacolaValor      Decimal? @db.Decimal(14, 2)
+  metaRestoPercentual  Decimal? @db.Decimal(5, 2)
+  metaRestoValor       Decimal? @db.Decimal(14, 2)
+
   grupoId String
   grupo   Grupo  @relation(fields: [grupoId], references: [id])
 

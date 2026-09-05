@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { CategoriaArquivo } from "@/generated/prisma/client";
+import { CategoriaArquivo, type Prisma } from "@/generated/prisma/client";
 import { UploadSlot } from "./upload-slot";
 import { fecharCiclo } from "./actions";
 import { calcularDivergencia } from "@/lib/divergencia";
@@ -137,12 +137,36 @@ export default async function CicloPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      {ciclo.status === "FECHADO" && <DivergenciaResumo cicloId={ciclo.id} />}
+      {ciclo.status === "FECHADO" && <DivergenciaResumo cicloId={ciclo.id} loja={ciclo.loja} />}
     </div>
   );
 }
 
-async function DivergenciaResumo({ cicloId }: { cicloId: string }) {
+type MetasLoja = {
+  metaSacolaPercentual: Prisma.Decimal | null;
+  metaSacolaValor: Prisma.Decimal | null;
+  metaRestoPercentual: Prisma.Decimal | null;
+  metaRestoValor: Prisma.Decimal | null;
+};
+
+// Item pedido pelo usuário em 2026-09-04: teto separado por PDV pra
+// sacola/material auxiliar e pro restante - se qualquer um dos dois (% ou
+// R$) for ultrapassado, considera fora da margem.
+function statusMargem(
+  categoria: { divergenciaValor: number; percentualSobreEstoque: number | null },
+  metaPercentual: Prisma.Decimal | null,
+  metaValor: Prisma.Decimal | null
+): "SEM_TETO" | "DENTRO" | "FORA" {
+  if (metaPercentual === null && metaValor === null) return "SEM_TETO";
+  const passouPercentual =
+    metaPercentual !== null &&
+    categoria.percentualSobreEstoque !== null &&
+    categoria.percentualSobreEstoque > Number(metaPercentual);
+  const passouValor = metaValor !== null && Math.abs(categoria.divergenciaValor) > Number(metaValor);
+  return passouPercentual || passouValor ? "FORA" : "DENTRO";
+}
+
+async function DivergenciaResumo({ cicloId, loja }: { cicloId: string; loja: MetasLoja }) {
   const d = await calcularDivergencia(cicloId);
 
   if (d.totalItens === 0) {
@@ -156,6 +180,8 @@ async function DivergenciaResumo({ cicloId }: { cicloId: string }) {
 
   const sinal = d.divergenciaValor >= 0 ? "sobra" : "falta";
   const corValor = d.divergenciaValor >= 0 ? "text-emerald-700" : "text-red-600";
+  const statusSacola = statusMargem(d.sacolaMaterialAuxiliar, loja.metaSacolaPercentual, loja.metaSacolaValor);
+  const statusResto = statusMargem(d.resto, loja.metaRestoPercentual, loja.metaRestoValor);
 
   return (
     <div className="flex flex-col gap-3">
@@ -197,13 +223,33 @@ async function DivergenciaResumo({ cicloId }: { cicloId: string }) {
           </p>
           <p className="text-lg font-medium text-neutral-900">
             {formatoBRL.format(d.sacolaMaterialAuxiliar.divergenciaValor)}
+            {d.sacolaMaterialAuxiliar.percentualSobreEstoque !== null && (
+              <span className="ml-2 text-sm font-normal text-neutral-400">
+                ({formatoPct(d.sacolaMaterialAuxiliar.percentualSobreEstoque)})
+              </span>
+            )}
           </p>
+          {statusSacola !== "SEM_TETO" && (
+            <p className={`text-xs font-medium ${statusSacola === "FORA" ? "text-red-600" : "text-emerald-700"}`}>
+              {statusSacola === "FORA" ? "Fora da margem" : "Dentro da margem"}
+            </p>
+          )}
         </div>
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <p className="text-sm text-neutral-500">Restante ({d.resto.totalItens} itens)</p>
           <p className="text-lg font-medium text-neutral-900">
             {formatoBRL.format(d.resto.divergenciaValor)}
+            {d.resto.percentualSobreEstoque !== null && (
+              <span className="ml-2 text-sm font-normal text-neutral-400">
+                ({formatoPct(d.resto.percentualSobreEstoque)})
+              </span>
+            )}
           </p>
+          {statusResto !== "SEM_TETO" && (
+            <p className={`text-xs font-medium ${statusResto === "FORA" ? "text-red-600" : "text-emerald-700"}`}>
+              {statusResto === "FORA" ? "Fora da margem" : "Dentro da margem"}
+            </p>
+          )}
         </div>
       </div>
     </div>

@@ -89,13 +89,16 @@ export async function atualizarLoja(
 export async function atualizarMetaDivergencia(lojaId: string, formData: FormData) {
   const session = await requireAuditorOuDiretoria();
 
-  const percentualTexto = String(formData.get("metaDivergenciaPercentual") ?? "").trim();
-  const valorTexto = String(formData.get("metaDivergenciaValor") ?? "").trim();
+  const campo = (nome: string) => String(formData.get(nome) ?? "").trim() || null;
   const motivo = String(formData.get("motivo") ?? "").trim() || "Meta de divergência atualizada";
 
   const depois = {
-    metaDivergenciaPercentual: percentualTexto ? percentualTexto : null,
-    metaDivergenciaValor: valorTexto ? valorTexto : null,
+    metaDivergenciaPercentual: campo("metaDivergenciaPercentual"),
+    metaDivergenciaValor: campo("metaDivergenciaValor"),
+    metaSacolaPercentual: campo("metaSacolaPercentual"),
+    metaSacolaValor: campo("metaSacolaValor"),
+    metaRestoPercentual: campo("metaRestoPercentual"),
+    metaRestoValor: campo("metaRestoValor"),
   };
 
   await prisma.$transaction(async (tx) => {
@@ -103,10 +106,7 @@ export async function atualizarMetaDivergencia(lojaId: string, formData: FormDat
 
     await tx.loja.update({
       where: { id: lojaId },
-      data: {
-        metaDivergenciaPercentual: depois.metaDivergenciaPercentual,
-        metaDivergenciaValor: depois.metaDivergenciaValor,
-      },
+      data: depois,
     });
 
     await registrarAlteracoes(tx, {
@@ -117,6 +117,10 @@ export async function atualizarMetaDivergencia(lojaId: string, formData: FormDat
       antes: {
         metaDivergenciaPercentual: antes.metaDivergenciaPercentual,
         metaDivergenciaValor: antes.metaDivergenciaValor,
+        metaSacolaPercentual: antes.metaSacolaPercentual,
+        metaSacolaValor: antes.metaSacolaValor,
+        metaRestoPercentual: antes.metaRestoPercentual,
+        metaRestoValor: antes.metaRestoValor,
       },
       depois,
     });

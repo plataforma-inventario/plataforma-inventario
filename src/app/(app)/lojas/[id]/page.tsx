@@ -137,6 +137,10 @@ export default async function LojaDetalhePage({
             lojaId={loja.id}
             metaDivergenciaPercentual={loja.metaDivergenciaPercentual?.toString() ?? null}
             metaDivergenciaValor={loja.metaDivergenciaValor?.toString() ?? null}
+            metaSacolaPercentual={loja.metaSacolaPercentual?.toString() ?? null}
+            metaSacolaValor={loja.metaSacolaValor?.toString() ?? null}
+            metaRestoPercentual={loja.metaRestoPercentual?.toString() ?? null}
+            metaRestoValor={loja.metaRestoValor?.toString() ?? null}
           />
         </div>
       )}
