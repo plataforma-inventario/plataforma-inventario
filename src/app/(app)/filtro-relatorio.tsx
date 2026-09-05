@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 type LojaOpcao = { id: string; pdv: number; nome: string };
@@ -15,6 +16,7 @@ export type ValoresFiltro = {
   cicloId?: string;
   dataInicio?: string;
   dataFim?: string;
+  busca?: string;
 };
 
 const MESES = [
@@ -32,12 +34,15 @@ export function FiltroRelatorio({
   valores,
   mostrarDirecao,
   mostrarTipoInventario,
+  mostrarBusca,
   ciclosPorLoja,
 }: {
   lojas: LojaOpcao[];
   valores: ValoresFiltro;
   mostrarDirecao?: boolean;
   mostrarTipoInventario?: boolean;
+  /** Mostra um campo de busca livre (nome ou CPF) - usado em Premiações. */
+  mostrarBusca?: boolean;
   /** Quando presente, mostra o select "Período (ciclo)" — lista os ciclos da loja selecionada. */
   ciclosPorLoja?: CicloOpcao[];
 }) {
@@ -56,6 +61,17 @@ export function FiltroRelatorio({
     irPara({ ...valores, [campo]: valor });
   };
 
+  // Campo de texto livre: espera uma pausa na digitação antes de navegar,
+  // pra não recarregar a página a cada letra digitada.
+  const [busca, setBusca] = useState(valores.busca ?? "");
+  useEffect(() => setBusca(valores.busca ?? ""), [valores.busca]);
+  useEffect(() => {
+    if (busca === (valores.busca ?? "")) return;
+    const timer = setTimeout(() => atualizar("busca", busca), 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busca]);
+
   const ciclosDaLoja = (ciclosPorLoja ?? []).filter((c) => c.lojaId === valores.loja);
 
   const anoAtual = new Date().getFullYear();
@@ -63,6 +79,16 @@ export function FiltroRelatorio({
 
   return (
     <div className="flex flex-wrap gap-2">
+      {mostrarBusca && (
+        <input
+          type="text"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar por nome ou CPF..."
+          className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
+        />
+      )}
+
       <select
         value={valores.loja ?? ""}
         onChange={(e) => irPara({ ...valores, loja: e.target.value, cicloId: "" })}

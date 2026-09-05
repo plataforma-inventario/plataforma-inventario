@@ -25,6 +25,7 @@ export default async function PremiacoesPage({
       dataInicio: valores.dataInicio ? new Date(`${valores.dataInicio}T00:00:00`) : undefined,
       dataFim: valores.dataFim ? new Date(`${valores.dataFim}T00:00:00`) : undefined,
       tipoLoja: valores.tipo as TipoLoja | undefined,
+      busca: valores.busca,
     }),
     getLojasVisiveis(session.user),
     getCiclosPorLoja(session.user),
@@ -39,11 +40,11 @@ export default async function PremiacoesPage({
         <h1 className="text-lg font-medium text-brand-dark">Premiações</h1>
         <p className="text-sm text-neutral-500">
           Item escolhido por cada funcionária na premiação, com a observação (nome/CPF) da
-          requisição — filtre por loja e período pra achar rápido.
+          requisição — busque pelo CPF (ou nome) da funcionária, ou filtre por loja e período.
         </p>
       </div>
 
-      <FiltroRelatorio lojas={lojas} valores={valores} ciclosPorLoja={ciclosPorLoja} />
+      <FiltroRelatorio lojas={lojas} valores={valores} ciclosPorLoja={ciclosPorLoja} mostrarBusca />
 
       <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
         <table className="w-full text-left text-sm">

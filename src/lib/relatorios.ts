@@ -20,6 +20,8 @@ export type FiltrosRelatorio = {
   tipoLoja?: TipoLoja;
   direcao?: DirecaoMovimento;
   tipoInventario?: TipoInventario;
+  // Busca livre na observação da requisição (nome ou CPF da funcionária) - usado só em Premiações.
+  busca?: string;
 };
 
 async function lojaIdsVisiveis(user: Usuario, tipoLoja?: TipoLoja) {
@@ -152,6 +154,17 @@ export async function getRequisicoes(user: Usuario, filtros: FiltrosRelatorio = 
  * Comparativo - aqui faz sentido pela mesma razão: é a gerente da própria
  * loja que precisa consultar, não um relatório consolidado externo.
  */
+// Remove tudo que não é letra/número e ignora maiúsculas/minúsculas, pra
+// bater o CPF (ou nome) digitado com a observação independente de pontuação
+// ("123.456.789-00" digitado sem pontuação, ou vice-versa).
+function normalizarBusca(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase();
+}
+
 export async function getPremiacoes(user: Usuario, filtros: FiltrosRelatorio = {}) {
   const ids = await lojaIdsVisiveis(user, filtros.tipoLoja);
   const itens = await prisma.itemRequisicao.findMany({
@@ -164,10 +177,13 @@ export async function getPremiacoes(user: Usuario, filtros: FiltrosRelatorio = {
     },
     include: { arquivo: { include: { ciclo: { include: { loja: true } } } } },
     orderBy: { dataRequisicao: "desc" },
-    take: 300,
+    take: filtros.busca ? 2000 : 300,
   });
 
-  return { itens };
+  if (!filtros.busca) return { itens };
+
+  const alvo = normalizarBusca(filtros.busca);
+  return { itens: itens.filter((i) => i.observacao && normalizarBusca(i.observacao).includes(alvo)) };
 }
 
 export type LinhaInventarioRelatorio = {
