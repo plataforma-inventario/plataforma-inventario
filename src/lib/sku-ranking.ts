@@ -5,6 +5,13 @@ export type LinhaRankingItem = {
   codigoProduto: string;
   descricaoProduto: string;
   ocorrenciasDivergenciaInventario: number;
+  // Pedido pelo usuário em 2026-09-05: separar quantas dessas ocorrências
+  // foram sobra (ajuste > 0) vs. falta (ajuste < 0) - um item que sempre
+  // falta é um padrão diferente de um que ora falta ora sobra em volume
+  // parecido (mais consistente com troca de código/erro de lançamento do
+  // que com furto, por exemplo).
+  ocorrenciasSobra: number;
+  ocorrenciasFalta: number;
   ocorrenciasDemonstrador: number;
   ocorrenciasBrinde: number;
   ocorrenciasPerdaRoubo: number;
@@ -27,7 +34,7 @@ export async function getRankingItens(): Promise<LinhaRankingItem[]> {
   const [divergenciasInventario, requisicoes, defeitos, cruzamentos] = await Promise.all([
     prisma.itemInventario.findMany({
       where: { arquivo: { ciclo: { status: "FECHADO" } }, NOT: { ajuste: 0 } },
-      select: { codigoProduto: true, descricaoProduto: true },
+      select: { codigoProduto: true, descricaoProduto: true, ajuste: true },
     }),
     prisma.itemRequisicao.findMany({
       where: { arquivo: { ciclo: { status: "FECHADO" } } },
@@ -48,6 +55,8 @@ export async function getRankingItens(): Promise<LinhaRankingItem[]> {
         codigoProduto: codigo,
         descricaoProduto: descricao,
         ocorrenciasDivergenciaInventario: 0,
+        ocorrenciasSobra: 0,
+        ocorrenciasFalta: 0,
         ocorrenciasDemonstrador: 0,
         ocorrenciasBrinde: 0,
         ocorrenciasPerdaRoubo: 0,
@@ -61,7 +70,10 @@ export async function getRankingItens(): Promise<LinhaRankingItem[]> {
   };
 
   for (const d of divergenciasInventario) {
-    getOuCriar(d.codigoProduto, d.descricaoProduto).ocorrenciasDivergenciaInventario++;
+    const linha = getOuCriar(d.codigoProduto, d.descricaoProduto);
+    linha.ocorrenciasDivergenciaInventario++;
+    if (Number(d.ajuste) > 0) linha.ocorrenciasSobra++;
+    else linha.ocorrenciasFalta++;
   }
 
   for (const r of requisicoes) {

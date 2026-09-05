@@ -32,6 +32,8 @@ export default async function ItensPage() {
                 <th className="px-4 py-2 font-medium">#</th>
                 <th className="px-4 py-2 font-medium">Produto</th>
                 <th className="px-4 py-2 font-medium">Divergência inventário</th>
+                <th className="px-4 py-2 font-medium">Sobra</th>
+                <th className="px-4 py-2 font-medium">Falta</th>
                 <th className="px-4 py-2 font-medium">Demonstrador</th>
                 <th className="px-4 py-2 font-medium">Brinde</th>
                 <th className="px-4 py-2 font-medium">Perda/roubo</th>
@@ -48,6 +50,8 @@ export default async function ItensPage() {
                     {l.codigoProduto} — {l.descricaoProduto}
                   </td>
                   <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasDivergenciaInventario}</td>
+                  <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasSobra}</td>
+                  <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasFalta}</td>
                   <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasDemonstrador}</td>
                   <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasBrinde}</td>
                   <td className="px-4 py-2 text-neutral-700">{l.ocorrenciasPerdaRoubo}</td>
