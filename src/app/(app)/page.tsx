@@ -101,7 +101,12 @@ export default async function Home() {
   const totalRequisicoes = requisicoes.reduce((acc, r) => acc + r.custoTotal, 0);
   const totalComposicao = composicao.sacola + composicao.resto;
 
-  const dadosRanking = linhasRanking.map((l) => ({
+  // Pedido pelo usuário em 2026-09-05: com as 30 lojas ativas o gráfico
+  // ficaria com 30 barras - mostra só as 10 piores aqui (linhasRanking já
+  // vem ordenada do pior pro melhor por getRankingLojas), a tabela completa
+  // com as 30 continua em /ranking.
+  const TOP_RANKING_DASHBOARD = 10;
+  const dadosRanking = linhasRanking.slice(0, TOP_RANKING_DASHBOARD).map((l) => ({
     nome: `${l.pdv} — ${l.nome}`,
     percentual: l.percentualSobreFaturamento ?? 0,
     acimaDaMeta: l.acimaDaMeta,
@@ -167,10 +172,20 @@ export default async function Home() {
       ) : (
         <div className="flex flex-col gap-4">
           <CartaoGrafico
-            titulo="Ranking entre lojas"
+            titulo={`Ranking entre lojas — ${Math.min(TOP_RANKING_DASHBOARD, linhasRanking.length)} piores`}
             descricao="% de divergência sobre faturamento no lançamento fechado mais recente de cada loja — vermelho indica acima da meta."
           >
             <RankingBarChart dados={dadosRanking} />
+            {linhasRanking.length > TOP_RANKING_DASHBOARD && (
+              <p className="mt-2 text-xs text-neutral-500">
+                Mostrando as {TOP_RANKING_DASHBOARD} piores de {linhasRanking.length} lojas com
+                lançamento fechado —{" "}
+                <Link href="/ranking" className="hover:text-brand-dark hover:underline">
+                  ver ranking completo
+                </Link>
+                .
+              </p>
+            )}
           </CartaoGrafico>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
