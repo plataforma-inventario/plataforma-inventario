@@ -20,7 +20,9 @@ export default async function CalendarioPage() {
           <h1 className="text-lg font-medium text-brand-dark">Calendário de visitas</h1>
           <p className="text-sm text-neutral-500">
             Próximo mês esperado de inventário por loja (ou o dia exato, quando já combinado),
-            considerando o ciclo e o subgrupo do calendário fixo de auditoria.
+            considerando o ciclo e o subgrupo do calendário fixo de auditoria. Lojas sem grupo fixo
+            (revenda e Centro de Distribuição) usam cadência corrida — a data esperada é sempre o
+            último fechamento + 60/90 dias, não um mês do calendário.
           </p>
         </div>
         {podeGerenciar && (
@@ -47,7 +49,11 @@ export default async function CalendarioPage() {
                 — esperado{" "}
                 {l.dataAgendada
                   ? `em ${l.dataAgendada.toLocaleDateString("pt-BR")}`
-                  : `em ${MESES[l.mesAnoEsperado.mes]}/${l.mesAnoEsperado.ano}`}
+                  : l.dataEsperadaCorrida
+                    ? `em ${l.dataEsperadaCorrida.toLocaleDateString("pt-BR")}`
+                    : l.mesAnoEsperado
+                      ? `em ${MESES[l.mesAnoEsperado.mes]}/${l.mesAnoEsperado.ano}`
+                      : "assim que fechar o primeiro lançamento"}
               </li>
             ))}
           </ul>
@@ -83,8 +89,15 @@ export default async function CalendarioPage() {
                       {l.dataAgendada.toLocaleDateString("pt-BR")}{" "}
                       <span className="text-xs text-neutral-400">(combinado)</span>
                     </span>
-                  ) : (
+                  ) : l.dataEsperadaCorrida ? (
+                    <span>
+                      {l.dataEsperadaCorrida.toLocaleDateString("pt-BR")}{" "}
+                      <span className="text-xs text-neutral-400">(cadência corrida)</span>
+                    </span>
+                  ) : l.mesAnoEsperado ? (
                     `${MESES[l.mesAnoEsperado.mes]}/${l.mesAnoEsperado.ano}`
+                  ) : (
+                    <span className="text-neutral-400">aguardando 1º lançamento</span>
                   )}
                 </td>
                 <td className={`px-4 py-2 font-medium ${l.atrasada ? "text-red-600" : "text-emerald-700"}`}>

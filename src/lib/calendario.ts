@@ -13,6 +13,16 @@ const MESES_POR_GRUPO: Record<string, number[]> = {
   T3: [4, 7, 10],
 };
 
+// Lojas sem grupo fixo (revenda e Centro de Distribuição - o cronograma
+// fixo acima vale só pras 26 lojas de varejo, ver docs/BRIEFING.md) usam
+// cadência corrida em dias a partir do último fechamento, em vez de mês
+// fixo compartilhado com outras lojas (pedido pelo usuário em 2026-09-05:
+// "de 90 em 90 dias", não um mês fixo do calendário).
+const DIAS_POR_CICLO_SEM_GRUPO: Record<string, number> = {
+  BIMESTRAL: 60,
+  TRIMESTRAL: 90,
+};
+
 // O cronograma fixo acima só passa a valer a partir deste ano (confirmado
 // pelo usuário em 2026-09-04) - antes disso o controle era manual em
 // planilha, então nenhuma loja deve ser cobrada/marcada como atrasada.
@@ -24,7 +34,14 @@ export type LojaCalendario = {
   nome: string;
   grupo: string; // "MENSAL" | "B1" | ... - chave de exibição
   ultimoCicloDataFim: Date | null;
-  mesAnoEsperado: { mes: number; ano: number };
+  // null só pras lojas de cadência corrida (dataEsperadaCorrida abaixo) -
+  // essas não têm um "mês fixo" pra estimar, só uma data exata.
+  mesAnoEsperado: { mes: number; ano: number } | null;
+  // Preenchido só pras lojas sem grupo fixo (revenda/CD): data exata
+  // esperada (último fechamento + N dias), em vez de um mês inteiro. Fica
+  // null se a loja ainda não teve nenhum lançamento fechado (sem âncora
+  // não dá pra estimar, então também não marca atraso).
+  dataEsperadaCorrida: Date | null;
   // Dia exato já combinado (importado da agenda/Google Agenda), quando
   // existir - sobrepõe o mesAnoEsperado (que só sabe o mês) na exibição.
   dataAgendada: Date | null;
@@ -69,9 +86,33 @@ export async function getCalendarioLojas(): Promise<LojaCalendario[]> {
   for (const loja of lojas) {
     const grupo = chaveGrupo(loja.cicloContagem!, loja.grupoAuditoria);
     const mesesValidos = MESES_POR_GRUPO[grupo];
-    if (!mesesValidos) continue;
-
     const ultimoCiclo = loja.ciclos[0] ?? null;
+
+    if (!mesesValidos) {
+      // Loja sem grupo fixo (revenda/CD): cadência corrida em dias em vez
+      // de mês fixo. Sem nenhum lançamento fechado ainda não tem âncora
+      // pra calcular uma data - não estima e não marca atraso.
+      const dias = DIAS_POR_CICLO_SEM_GRUPO[loja.cicloContagem!];
+      let dataEsperadaCorrida: Date | null = null;
+      let atrasadaCorrida = false;
+      if (dias && ultimoCiclo) {
+        dataEsperadaCorrida = new Date(ultimoCiclo.dataFim);
+        dataEsperadaCorrida.setDate(dataEsperadaCorrida.getDate() + dias);
+        atrasadaCorrida = hoje > dataEsperadaCorrida;
+      }
+      resultado.push({
+        lojaId: loja.id,
+        pdv: loja.pdv,
+        nome: loja.nome,
+        grupo,
+        ultimoCicloDataFim: ultimoCiclo?.dataFim ?? null,
+        mesAnoEsperado: null,
+        dataEsperadaCorrida,
+        dataAgendada: null,
+        atrasada: atrasadaCorrida,
+      });
+      continue;
+    }
 
     let esperado: { mes: number; ano: number };
     if (ultimoCiclo) {
@@ -121,15 +162,19 @@ export async function getCalendarioLojas(): Promise<LojaCalendario[]> {
       grupo,
       ultimoCicloDataFim: ultimoCiclo?.dataFim ?? null,
       mesAnoEsperado: esperado,
+      dataEsperadaCorrida: null,
       dataAgendada,
       atrasada,
     });
   }
 
+  // Normaliza mesAnoEsperado/dataEsperadaCorrida numa única data comparável,
+  // pra ordenar os dois tipos de loja (grupo fixo e cadência corrida) juntos.
+  const dataComparavel = (l: LojaCalendario): Date =>
+    l.dataEsperadaCorrida ?? (l.mesAnoEsperado ? new Date(l.mesAnoEsperado.ano, l.mesAnoEsperado.mes - 1, 1) : hoje);
+
   return resultado.sort((a, b) => {
     if (a.atrasada !== b.atrasada) return a.atrasada ? -1 : 1;
-    return (
-      a.mesAnoEsperado.ano - b.mesAnoEsperado.ano || a.mesAnoEsperado.mes - b.mesAnoEsperado.mes
-    );
+    return dataComparavel(a).getTime() - dataComparavel(b).getTime();
   });
 }
