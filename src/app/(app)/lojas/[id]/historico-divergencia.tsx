@@ -13,24 +13,24 @@ export function HistoricoDivergencia({ pontos }: { pontos: PontoHistoricoDiverge
     );
   }
 
-  const comPercentual = pontos.filter((p) => p.percentualSobreEstoque !== null);
-  const maiorPct = Math.max(...comPercentual.map((p) => p.percentualSobreEstoque!), 0.01);
+  const comPercentual = pontos.filter((p) => p.percentualSobreFaturamento !== null);
+  const maiorPct = Math.max(...comPercentual.map((p) => p.percentualSobreFaturamento!), 0.01);
   const melhor = comPercentual.reduce((a, b) =>
-    (a.percentualSobreEstoque ?? Infinity) <= (b.percentualSobreEstoque ?? Infinity) ? a : b
+    (a.percentualSobreFaturamento ?? Infinity) <= (b.percentualSobreFaturamento ?? Infinity) ? a : b
   , comPercentual[0]);
   const pior = comPercentual.reduce((a, b) =>
-    (a.percentualSobreEstoque ?? -Infinity) >= (b.percentualSobreEstoque ?? -Infinity) ? a : b
+    (a.percentualSobreFaturamento ?? -Infinity) >= (b.percentualSobreFaturamento ?? -Infinity) ? a : b
   , comPercentual[0]);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end gap-2 rounded-lg border border-neutral-200 bg-white p-4" style={{ height: 160 }}>
         {pontos.map((p) => {
-          const alturaPct = p.percentualSobreEstoque !== null ? (p.percentualSobreEstoque / maiorPct) * 100 : 2;
+          const alturaPct = p.percentualSobreFaturamento !== null ? (p.percentualSobreFaturamento / maiorPct) * 100 : 2;
           return (
             <div key={p.cicloId} className="flex flex-1 flex-col items-center justify-end gap-1" style={{ height: "100%" }}>
               <span className="text-[10px] text-neutral-400">
-                {p.percentualSobreEstoque !== null ? formatoPct(p.percentualSobreEstoque) : "—"}
+                {p.percentualSobreFaturamento !== null ? formatoPct(p.percentualSobreFaturamento) : "—"}
               </span>
               <div
                 title={`${p.dataFim.toLocaleDateString("pt-BR")} — ${p.tipoInventario === "COMPLETO" ? "Completo" : "Cíclico"}`}
@@ -58,14 +58,14 @@ export function HistoricoDivergencia({ pontos }: { pontos: PontoHistoricoDiverge
           <p className="text-xs text-emerald-700">Melhor inventário</p>
           <p className="text-sm font-medium text-emerald-800">
             {melhor.dataFim.toLocaleDateString("pt-BR")} —{" "}
-            {melhor.percentualSobreEstoque !== null ? formatoPct(melhor.percentualSobreEstoque) : "—"}
+            {melhor.percentualSobreFaturamento !== null ? formatoPct(melhor.percentualSobreFaturamento) : "—"}
           </p>
         </div>
         <div className="rounded-lg border border-red-200 bg-red-50 p-3">
           <p className="text-xs text-red-700">Pior inventário</p>
           <p className="text-sm font-medium text-red-800">
             {pior.dataFim.toLocaleDateString("pt-BR")} —{" "}
-            {pior.percentualSobreEstoque !== null ? formatoPct(pior.percentualSobreEstoque) : "—"}
+            {pior.percentualSobreFaturamento !== null ? formatoPct(pior.percentualSobreFaturamento) : "—"}
           </p>
         </div>
       </div>
@@ -77,7 +77,7 @@ export function HistoricoDivergencia({ pontos }: { pontos: PontoHistoricoDiverge
               <th className="px-4 py-2 font-medium">Data</th>
               <th className="px-4 py-2 font-medium">Tipo</th>
               <th className="px-4 py-2 font-medium">Divergência R$</th>
-              <th className="px-4 py-2 font-medium">% estoque</th>
+              <th className="px-4 py-2 font-medium">% faturamento</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
@@ -87,11 +87,14 @@ export function HistoricoDivergencia({ pontos }: { pontos: PontoHistoricoDiverge
                 <td className="px-4 py-2 text-neutral-700">
                   {p.tipoInventario === "COMPLETO" ? "Completo" : "Cíclico"}
                 </td>
-                <td className={`px-4 py-2 ${p.divergenciaValor < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                  {formatoBRL.format(p.divergenciaValor)}
+                <td className="px-4 py-2 text-neutral-900">
+                  {formatoBRL.format(p.divergenciaValor)}{" "}
+                  <span className="text-xs text-neutral-400">
+                    ({p.divergenciaValor < 0 ? "falta" : "sobra"})
+                  </span>
                 </td>
                 <td className="px-4 py-2 text-neutral-700">
-                  {p.percentualSobreEstoque !== null ? formatoPct(p.percentualSobreEstoque) : "—"}
+                  {p.percentualSobreFaturamento !== null ? formatoPct(p.percentualSobreFaturamento) : "—"}
                 </td>
               </tr>
             ))}

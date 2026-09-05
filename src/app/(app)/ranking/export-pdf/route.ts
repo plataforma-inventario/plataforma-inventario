@@ -6,11 +6,12 @@ const formatoBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency:
 const formatoPct = (v: number) => `${v.toFixed(2).replace(".", ",")}%`;
 
 // Item 10.4: relatório pronto pra apresentação, direto do ranking.
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   if (!session) return new Response("Não autenticado", { status: 401 });
 
-  const linhas = await getRankingLojas(session.user);
+  const criterio = new URL(request.url).searchParams.get("ordenarPor") === "valor" ? "valor" : "percentual";
+  const linhas = await getRankingLojas(session.user, criterio);
 
   const doc = new PDFDocument({ size: "A4", margin: 40 });
   const chunks: Buffer[] = [];
@@ -31,7 +32,7 @@ export async function GET() {
     { titulo: "Loja", largura: 170 },
     { titulo: "Último lançamento", largura: 90 },
     { titulo: "Divergência R$", largura: 90 },
-    { titulo: "% estoque", largura: 70 },
+    { titulo: "% faturamento", largura: 70 },
     { titulo: "Tendência", largura: 90 },
   ];
   const xInicial = doc.x;
@@ -64,7 +65,7 @@ export async function GET() {
         `${l.pdv} — ${l.nome}`,
         l.dataFim.toLocaleDateString("pt-BR"),
         formatoBRL.format(l.divergenciaValor),
-        l.percentualSobreEstoque !== null ? formatoPct(l.percentualSobreEstoque) : "—",
+        l.percentualSobreFaturamento !== null ? formatoPct(l.percentualSobreFaturamento) : "—",
         l.tendencia === "MELHOROU" ? "Melhorou" : l.tendencia === "PIOROU" ? "Piorou" : l.tendencia === "ESTAVEL" ? "Estável" : "—",
       ],
       false

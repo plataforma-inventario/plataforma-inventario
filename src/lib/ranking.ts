@@ -12,7 +12,13 @@ export type LinhaRanking = {
   cicloId: string;
   dataFim: Date;
   divergenciaValor: number;
-  percentualSobreEstoque: number | null;
+  // % sobre faturamento do período (não % sobre estoque contado): o CSV de
+  // inventário só traz os SKUs com diferença, então o estoque contado não é
+  // o estoque real da loja e não dá pra comparar lojas de tamanhos
+  // diferentes por ele. Faturamento é sempre um total de período de verdade,
+  // por isso virou a base de comparação entre lojas (decisão com o usuário
+  // em 2026-09-05).
+  percentualSobreFaturamento: number | null;
   metaPercentual: number | null;
   acimaDaMeta: boolean;
   tendencia: "MELHOROU" | "PIOROU" | "ESTAVEL" | "SEM_HISTORICO";
@@ -23,7 +29,10 @@ export type LinhaRanking = {
  * recente de cada uma. "Tendência" compara com o ciclo fechado anterior da
  * mesma loja.
  */
-export async function getRankingLojas(user: { id: string; perfil: PerfilAcesso }): Promise<LinhaRanking[]> {
+export async function getRankingLojas(
+  user: { id: string; perfil: PerfilAcesso },
+  criterioOrdenacao: "percentual" | "valor" = "percentual"
+): Promise<LinhaRanking[]> {
   const lojas = await prisma.loja.findMany({
     where: { ativa: true, tipoLoja: { in: ["VAREJO", "REVENDA"] }, ...lojasVisiveisWhere(user) },
     include: { regiao: true },
@@ -46,8 +55,12 @@ export async function getRankingLojas(user: { id: string; perfil: PerfilAcesso }
     let tendencia: LinhaRanking["tendencia"] = "SEM_HISTORICO";
     if (anterior) {
       const dAnterior = await calcularDivergencia(anterior.id);
-      if (dAnterior.totalItens > 0 && dAtual.percentualSobreEstoque !== null && dAnterior.percentualSobreEstoque !== null) {
-        const diferenca = dAtual.percentualSobreEstoque - dAnterior.percentualSobreEstoque;
+      if (
+        dAnterior.totalItens > 0 &&
+        dAtual.percentualSobreFaturamento !== null &&
+        dAnterior.percentualSobreFaturamento !== null
+      ) {
+        const diferenca = dAtual.percentualSobreFaturamento - dAnterior.percentualSobreFaturamento;
         tendencia = diferenca < -0.01 ? "MELHOROU" : diferenca > 0.01 ? "PIOROU" : "ESTAVEL";
       }
     }
@@ -56,8 +69,8 @@ export async function getRankingLojas(user: { id: string; perfil: PerfilAcesso }
     const metaValor = loja.metaDivergenciaValor ? Number(loja.metaDivergenciaValor) : null;
     const acimaDaMeta =
       (metaPercentual !== null &&
-        dAtual.percentualSobreEstoque !== null &&
-        dAtual.percentualSobreEstoque > metaPercentual) ||
+        dAtual.percentualSobreFaturamento !== null &&
+        dAtual.percentualSobreFaturamento > metaPercentual) ||
       (metaValor !== null && Math.abs(dAtual.divergenciaValor) > metaValor);
 
     linhas.push({
@@ -69,12 +82,15 @@ export async function getRankingLojas(user: { id: string; perfil: PerfilAcesso }
       cicloId: atual.id,
       dataFim: atual.dataFim,
       divergenciaValor: dAtual.divergenciaValor,
-      percentualSobreEstoque: dAtual.percentualSobreEstoque,
+      percentualSobreFaturamento: dAtual.percentualSobreFaturamento,
       metaPercentual,
       acimaDaMeta,
       tendencia,
     });
   }
 
-  return linhas.sort((a, b) => (b.percentualSobreEstoque ?? 0) - (a.percentualSobreEstoque ?? 0));
+  if (criterioOrdenacao === "valor") {
+    return linhas.sort((a, b) => Math.abs(b.divergenciaValor) - Math.abs(a.divergenciaValor));
+  }
+  return linhas.sort((a, b) => (b.percentualSobreFaturamento ?? 0) - (a.percentualSobreFaturamento ?? 0));
 }

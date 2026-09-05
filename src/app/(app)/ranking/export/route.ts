@@ -2,11 +2,12 @@ import * as XLSX from "xlsx";
 import { auth } from "@/auth";
 import { getRankingLojas } from "@/lib/ranking";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   if (!session) return new Response("Não autenticado", { status: 401 });
 
-  const linhas = await getRankingLojas(session.user);
+  const criterio = new URL(request.url).searchParams.get("ordenarPor") === "valor" ? "valor" : "percentual";
+  const linhas = await getRankingLojas(session.user, criterio);
 
   const dados = linhas.map((l, i) => ({
     "#": i + 1,
@@ -15,7 +16,7 @@ export async function GET() {
     Região: l.regiaoNome ?? "",
     "Último lançamento": l.dataFim.toLocaleDateString("pt-BR"),
     "Divergência R$": l.divergenciaValor,
-    "% sobre estoque": l.percentualSobreEstoque ?? "",
+    "% sobre faturamento": l.percentualSobreFaturamento ?? "",
     "Meta %": l.metaPercentual ?? "",
     "Acima da meta": l.acimaDaMeta ? "Sim" : "Não",
     Tendência: l.tendencia,

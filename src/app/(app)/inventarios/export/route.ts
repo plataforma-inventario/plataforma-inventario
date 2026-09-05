@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     Ciclo: l.cicloContagem ?? "",
     Inventário: l.tipoInventario,
     "Divergência R$": l.divergenciaValor,
-    "% estoque": l.percentualSobreEstoque ?? "",
+    "% faturamento": l.percentualSobreFaturamento ?? "",
   }));
 
   const planilha = XLSX.utils.json_to_sheet(dados);

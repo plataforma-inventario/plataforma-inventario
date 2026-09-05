@@ -60,7 +60,7 @@ export function MetaDivergenciaForm({ lojaId, ...valores }: { lojaId: string } &
       <CampoMeta
         idPercentual="metaDivergenciaPercentual"
         idValor="metaDivergenciaValor"
-        rotulo="Meta geral"
+        rotulo="Meta geral (% sobre faturamento)"
         valorPercentual={valores.metaDivergenciaPercentual}
         valorValor={valores.metaDivergenciaValor}
       />
@@ -83,9 +83,11 @@ export function MetaDivergenciaForm({ lojaId, ...valores }: { lojaId: string } &
         Salvar metas
       </button>
       <p className="w-full text-xs text-neutral-400">
-        Item 10.2 — a meta geral aparece sinalizada no ranking entre lojas. Os tetos de
-        sacola/sem-sacola aparecem no lançamento fechado, comparando cada categoria com o teto
-        dela.
+        Item 10.2 — a meta geral aparece sinalizada no ranking entre lojas, comparada com a
+        divergência em % sobre o faturamento do período (não sobre o estoque contado, que só
+        reflete os itens com diferença). Os tetos de sacola/sem-sacola aparecem no lançamento
+        fechado, comparando cada categoria com o teto dela sobre o estoque contado da própria
+        categoria.
       </p>
     </form>
   );

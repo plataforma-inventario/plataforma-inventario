@@ -197,7 +197,10 @@ export type LinhaInventarioRelatorio = {
   dataFim: Date;
   tipoInventario: TipoInventario;
   divergenciaValor: number;
-  percentualSobreEstoque: number | null;
+  // % sobre faturamento do período (comparável entre lojas de tamanhos
+  // diferentes) — não % sobre estoque contado, que só reflete os SKUs
+  // divergentes do CSV de inventário, não o estoque real da loja.
+  percentualSobreFaturamento: number | null;
 };
 
 // Item 3/9: lista de inventários cruzando todas as lojas, com os filtros
@@ -235,7 +238,7 @@ export async function getInventarios(
       dataFim: ciclo.dataFim,
       tipoInventario: ciclo.tipoInventario,
       divergenciaValor: d.divergenciaValor,
-      percentualSobreEstoque: d.percentualSobreEstoque,
+      percentualSobreFaturamento: d.percentualSobreFaturamento,
     });
   }
   return linhas;

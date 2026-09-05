@@ -96,7 +96,11 @@ export type PontoHistoricoDivergencia = {
   dataFim: Date;
   tipoInventario: "CICLICO" | "COMPLETO";
   divergenciaValor: number;
+  // % sobre estoque contado (só os itens divergentes, não o estoque real da
+  // loja - ver percentualSobreFaturamento pra evolução comparável entre
+  // ciclos). Mantido aqui só pra referência informativa.
   percentualSobreEstoque: number | null;
+  percentualSobreFaturamento: number | null;
 };
 
 /**
@@ -122,6 +126,7 @@ export async function getHistoricoDivergencia(lojaId: string): Promise<PontoHist
       tipoInventario: ciclo.tipoInventario,
       divergenciaValor: d.divergenciaValor,
       percentualSobreEstoque: d.percentualSobreEstoque,
+      percentualSobreFaturamento: d.percentualSobreFaturamento,
     });
   }
   return pontos;

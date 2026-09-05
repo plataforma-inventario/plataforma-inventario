@@ -179,7 +179,6 @@ async function DivergenciaResumo({ cicloId, loja }: { cicloId: string; loja: Met
   }
 
   const sinal = d.divergenciaValor >= 0 ? "sobra" : "falta";
-  const corValor = d.divergenciaValor >= 0 ? "text-emerald-700" : "text-red-600";
   const statusSacola = statusMargem(d.sacolaMaterialAuxiliar, loja.metaSacolaPercentual, loja.metaSacolaValor);
   const statusResto = statusMargem(d.resto, loja.metaRestoPercentual, loja.metaRestoValor);
 
@@ -189,7 +188,7 @@ async function DivergenciaResumo({ cicloId, loja }: { cicloId: string; loja: Met
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <p className="text-sm text-neutral-500">Divergência total</p>
-          <p className={`text-xl font-semibold ${corValor}`}>
+          <p className="text-xl font-semibold text-neutral-900">
             {formatoBRL.format(d.divergenciaValor)}
           </p>
           <p className="text-xs text-neutral-400">{sinal} em relação ao esperado</p>

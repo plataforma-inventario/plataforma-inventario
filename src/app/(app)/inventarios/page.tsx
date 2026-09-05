@@ -72,7 +72,7 @@ export default async function InventariosPage({
               <th className="px-4 py-2 font-medium">Ciclo</th>
               <th className="px-4 py-2 font-medium">Inventário</th>
               <th className="px-4 py-2 font-medium">Divergência R$</th>
-              <th className="px-4 py-2 font-medium">% estoque</th>
+              <th className="px-4 py-2 font-medium">% faturamento</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
@@ -94,11 +94,14 @@ export default async function InventariosPage({
                 <td className="px-4 py-2 text-neutral-700">
                   {l.tipoInventario === "COMPLETO" ? "Completo" : "Cíclico"}
                 </td>
-                <td className={`px-4 py-2 ${l.divergenciaValor < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                  {formatoBRL.format(l.divergenciaValor)}
+                <td className="px-4 py-2 text-neutral-900">
+                  {formatoBRL.format(l.divergenciaValor)}{" "}
+                  <span className="text-xs text-neutral-400">
+                    ({l.divergenciaValor < 0 ? "falta" : "sobra"})
+                  </span>
                 </td>
                 <td className="px-4 py-2 font-medium text-neutral-900">
-                  {l.percentualSobreEstoque !== null ? formatoPct(l.percentualSobreEstoque) : "—"}
+                  {l.percentualSobreFaturamento !== null ? formatoPct(l.percentualSobreFaturamento) : "—"}
                 </td>
               </tr>
             ))}
